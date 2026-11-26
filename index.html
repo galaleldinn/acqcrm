@@ -1611,7 +1611,7 @@
           body: JSON.stringify({ ...payload, userEmail: state.googleUser?.email || "" })
         });
         document.getElementById("sync-text").textContent = "Egypt Time • Cloud Synced";
-        setTimeout(() => pullFromGoogleSheet(true), 1500);
+        setTimeout(() => pullFromGoogleSheet(false), 4200);
       } catch (e) {
         document.getElementById("sync-text").textContent = "Egypt Time • Sync Error";
       }
