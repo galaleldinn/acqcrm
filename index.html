@@ -538,7 +538,7 @@
             </div>
           </div>
 
-          <!-- BULK ACTION BAR (APPEARS WHEN 1+ CHECKBOXES SELECTED) -->
+          <!-- BULK ACTION BAR -->
           <div id="campaign-bulk-bar" class="hidden bg-indigo-950/60 border border-indigo-500/40 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
             <span class="font-bold text-indigo-200"><span id="campaign-selected-count">0</span> agent(s) selected</span>
             <div class="flex flex-wrap items-center gap-2">
@@ -572,7 +572,7 @@
         </div>
       </div>
 
-      <!-- ADMIN SECTION B: UNASSIGNED / BENCH AGENTS (WITH DAYS WAITING & AGENT ID) -->
+      <!-- ADMIN SECTION B: UNASSIGNED / BENCH AGENTS -->
       <div id="admin-section-bench" class="hidden space-y-5">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
@@ -729,7 +729,7 @@
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
             <div>
               <h3 class="text-sm font-bold text-slate-100">👥 Roster, Leaderboard Visibility, Admin Roles &amp; Archive (<span id="roster-count">0</span> Active)</h3>
-              <p class="text-[11px] text-slate-400">New hires are automatically added to the Unassigned Bench. Use <strong>🏆 Hide</strong> to exclude someone from the Leaderboard.</p>
+              <p class="text-[11px] text-slate-400">New hires are automatically added to the Unassigned Bench. Use <strong>🏆 LB</strong> to exclude someone from the Leaderboard.</p>
             </div>
             <div class="flex gap-2">
               <input type="text" id="new-agent-name" placeholder="Full Name of New Agent..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
@@ -746,7 +746,7 @@
   <!-- ALL MODALS                                                -->
   <!-- ========================================================= -->
 
-  <!-- ADD / ASSIGN CAMPAIGN AGENT MODAL (INCLUDES ADMIN-ONLY AGENT ID) -->
+  <!-- ADD / ASSIGN CAMPAIGN AGENT MODAL -->
   <div id="modal-add-campaign-agent" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div>
@@ -806,7 +806,7 @@
     </div>
   </div>
 
-  <!-- LEAVE REQUEST MODAL WITH COVERAGE WARNING -->
+  <!-- LEAVE REQUEST MODAL -->
   <div id="modal-leave-req" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div><h3 class="text-base font-bold text-slate-100">📅 Request Individual Days Off</h3><p class="text-xs text-slate-400 mt-0.5">Pick your leave type and add one or more individual dates.</p></div>
@@ -865,7 +865,7 @@
     </div>
   </div>
 
-  <!-- ADMIN PROFILE INSPECTOR MODAL (SHOWS ADMIN-ONLY AGENT ID) -->
+  <!-- ADMIN PROFILE INSPECTOR MODAL -->
   <div id="modal-inspect-agent" class="fixed inset-0 bg-black/85 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
       <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-4">
@@ -899,7 +899,7 @@
     </div>
   </div>
 
-  <!-- START BREAK MODAL (INCLUDES MEETING) -->
+  <!-- START BREAK MODAL -->
   <div id="modal-break" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <h3 class="text-base font-bold text-slate-100">☕ Start Break — Select Reason</h3>
@@ -969,7 +969,7 @@
     </div>
   </div>
 
-  <!-- END-OF-SHIFT CLOCK OUT MODAL WITH LIVE AUTO-SUMMARY & TYPO GUARD -->
+  <!-- END-OF-SHIFT CLOCK OUT MODAL -->
   <div id="modal-clockout" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div><h3 class="text-base font-bold text-slate-100">🔴 End-of-Shift KPI Gate &amp; Clock Out</h3><p id="eod-modal-subtitle" class="text-xs text-slate-400 mt-0.5">Enter the calls, talk minutes, and leads added during this session.</p></div>
@@ -1139,6 +1139,12 @@
       return String(str ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
     }
 
+    function isTruthyVal(val) {
+      if (val === true) return true;
+      const s = String(val ?? "").trim().toUpperCase();
+      return s === "TRUE" || s === "1" || s === "YES";
+    }
+
     function getEgyptDateStr(ts = Date.now()) {
       const parts = new Intl.DateTimeFormat("en-CA", {
         timeZone: EGYPT_TZ,
@@ -1283,7 +1289,8 @@
       lastWriteTs: 0,
       isSubmitting: false,
       isFetching: false,
-      warnedBreakKey: ""
+      warnedBreakKey: "",
+      syncEpoch: 0
     };
 
     function playBreakWarningChime() {
@@ -1439,9 +1446,11 @@
     }
 
     // =========================================================
-    // 4. GOOGLE SIGN-IN & 5s ACTIVE-TAB CLOUD SYNC ENGINE
+    // 4. GOOGLE SIGN-IN & RACE-PROOF QUEUED CLOUD SYNC ENGINE
     // =========================================================
     let gsiRendered = false;
+    let writeQueue = Promise.resolve();
+    let pendingWritesCount = 0;
 
     function initGoogleIdentity() {
       const headerGsi = document.getElementById("header-gsi-btn");
@@ -1600,21 +1609,37 @@
       showToast("Signed out.");
     }
 
-    async function syncPayloadToCloud(payload) {
+    function syncPayloadToCloud(payload) {
+      pendingWritesCount++;
+      state.syncEpoch = (state.syncEpoch || 0) + 1;
       state.lastWriteTs = Date.now();
       document.getElementById("sync-text").textContent = "Egypt Time • Saving...";
-      try {
-        await fetch(SHEET_WEBAPP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ ...payload, userEmail: state.googleUser?.email || "" })
-        });
-        document.getElementById("sync-text").textContent = "Egypt Time • Cloud Synced";
-        setTimeout(() => pullFromGoogleSheet(false), 4200);
-      } catch (e) {
-        document.getElementById("sync-text").textContent = "Egypt Time • Sync Error";
-      }
+
+      writeQueue = writeQueue.then(async () => {
+        state.lastWriteTs = Date.now();
+        try {
+          const res = await fetch(SHEET_WEBAPP_URL, {
+            method: "POST",
+            redirect: "follow",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ ...payload, userEmail: state.googleUser?.email || "" })
+          });
+          const data = await res.json();
+          if (!data.ok) {
+            showToast("⚠️ Cloud Save Error: " + (data.error || "Unknown error"));
+          }
+        } catch (e) {
+          document.getElementById("sync-text").textContent = "Egypt Time • Sync Error";
+        } finally {
+          pendingWritesCount = Math.max(0, pendingWritesCount - 1);
+          state.lastWriteTs = Date.now();
+          if (pendingWritesCount === 0) {
+            document.getElementById("sync-text").textContent = "Egypt Time • Cloud Synced";
+          }
+        }
+      });
+
+      return writeQueue;
     }
 
     function syncRosterToCloud() {
@@ -1625,23 +1650,27 @@
         isArchived: state.archivedAgents.includes(name),
         hideLeaderboard: state.hiddenLeaderboardAgents.includes(name)
       }));
-      syncPayloadToCloud({ recordType: "ROSTER_SYNC", roster: rosterPayload });
+      return syncPayloadToCloud({ recordType: "ROSTER_SYNC", roster: rosterPayload });
     }
 
     function syncCampaignsToCloud() {
       state.campaignAssignments.forEach((item, idx) => { item.sortOrder = idx + 1; });
-      syncPayloadToCloud({ recordType: "CAMPAIGNS_SYNC", assignments: state.campaignAssignments });
+      return syncPayloadToCloud({ recordType: "CAMPAIGNS_SYNC", assignments: state.campaignAssignments });
     }
 
     async function pullFromGoogleSheet(force = false) {
-      if (state.isFetching) return;
-      if (!force && (Date.now() - state.lastWriteTs < 4000)) return;
+      if (state.isFetching || pendingWritesCount > 0) return;
+      if (!force && (Date.now() - state.lastWriteTs < 6500)) return;
 
+      const fetchEpoch = state.syncEpoch || 0;
+      const fetchStartTs = Date.now();
       state.isFetching = true;
       document.getElementById("sync-text").textContent = "Egypt Time • Syncing...";
       try {
         const res = await fetch(SHEET_WEBAPP_URL + "?t=" + Date.now());
         const data = await res.json();
+        if (pendingWritesCount > 0 || fetchEpoch !== (state.syncEpoch || 0) || state.lastWriteTs > fetchStartTs) return;
+
         if (data.ok) {
           if (Array.isArray(data.config) && data.config.length > 0) {
             data.config.forEach(item => {
@@ -1666,9 +1695,9 @@
               if (r["Break Limit"] !== "" && r["Break Limit"] !== undefined && r["Break Limit"] !== null) {
                 remoteLimits[nm] = Number(r["Break Limit"]);
               }
-              if (String(r["Is Admin"]).toUpperCase() === "TRUE") remoteAdmins.push(nm);
-              if (String(r["Is Archived"]).toUpperCase() === "TRUE") remoteArchived.push(nm);
-              if (String(r["Hide Leaderboard"]).toUpperCase() === "TRUE") remoteHideLb.push(nm);
+              if (isTruthyVal(r["Is Admin"])) remoteAdmins.push(nm);
+              if (isTruthyVal(r["Is Archived"])) remoteArchived.push(nm);
+              if (isTruthyVal(r["Hide Leaderboard"])) remoteHideLb.push(nm);
             });
             if (remoteAgents.length > 0) {
               state.agents = remoteAgents;
@@ -2248,14 +2277,12 @@
         cph: r.netHours > 0 ? Math.round((r.calls / r.netHours) * 10) / 10 : 0
       }));
 
-      // Populate Leaderboard Campaign Filter
       const campSel = document.getElementById("lb-campaign-filter");
       const currentCampFilter = campSel.value || "ALL";
       const uniqueCamps = [...new Set(allCalculated.map(r => r.campaign))].sort();
       campSel.innerHTML = `<option value="ALL">All Campaigns</option>` +
         uniqueCamps.map(c => `<option value="${escapeHtml(c)}" ${c === currentCampFilter ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
 
-      // Campaign vs Campaign Battle Bar
       const campTotals = {};
       allCalculated.forEach(r => {
         if (r.campaign === "Unassigned" && r.calls === 0) return;
@@ -2293,7 +2320,6 @@
         return b.calls - a.calls || b.leads - a.leads;
       });
 
-      // Personal "My Rank" Banner
       const myBanner = document.getElementById("lb-my-rank-banner");
       const myName = getLockedAgentNameForCurrentUser();
       const myIdx = rows.findIndex(r => r.agentName === myName);
@@ -3683,7 +3709,6 @@
       const hideBench = document.getElementById("floor-hide-bench-chk").checked;
       const isAdmin = isCurrentUserAdmin();
 
-      // Populate Campaign & Dialer dropdowns on Live Floor
       const campFilterEl = document.getElementById("floor-campaign-filter");
       const dialerFilterEl = document.getElementById("floor-dialer-filter");
       const curCamp = campFilterEl.value || "ALL";
@@ -4391,7 +4416,6 @@
       state.agents.push(name);
       input.value = "";
 
-      // Auto-add new roster hire to Unassigned Bench with today's date
       if (!state.campaignAssignments.some(c => c.agentName === name)) {
         state.campaignAssignments.push({
           sortOrder: state.campaignAssignments.length + 1,
