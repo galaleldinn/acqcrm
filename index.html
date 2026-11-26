@@ -1955,15 +1955,15 @@
       Object.entries(grouped).forEach(([camp, members]) => {
         lines.push(`🎯 ${camp} (${members.length} Active):`);
         members.forEach(m => {
-          const display = m.aliasName || m.agentName.split(" ").slice(0, 2).join(" ");
+          const idPrefix = m.agentId ? `[${m.agentId}] ` : "";
           const rolePart = m.role ? ` — ${m.role}` : "";
-          const dialerPart = m.dialer ? ` [${m.dialer}]` : "";
-          lines.push(`• ${display}${rolePart}${dialerPart}`);
+          const dialerPart = m.dialer ? ` (${m.dialer})` : "";
+          lines.push(`• ${idPrefix}${m.agentName}${rolePart}${dialerPart}`);
         });
         lines.push("");
       });
       navigator.clipboard.writeText(lines.join("\n").trim());
-      showToast("📋 Client-ready Campaign Roster copied (real names & IDs excluded)!");
+      showToast("📋 Campaign Roster copied (Agent IDs & Full Names)!");
     }
 
     function renderCampaignBoard() {
