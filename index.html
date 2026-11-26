@@ -1940,7 +1940,7 @@
       showToast(`🎯 Reassigned ${moved} agent(s) to ${newCamp}`);
     }
 
-    function copyClientCampaignRoster() {
+   function copyClientCampaignRoster() {
       const filterVal = document.getElementById("campaign-filter-select").value || "ALL";
       const assigned = state.campaignAssignments.filter(c => c.status !== "BENCH" && c.campaignName && (filterVal === "ALL" || c.campaignName === filterVal));
       if (assigned.length === 0) return showToast("No assigned callers to copy.");
@@ -1949,6 +1949,22 @@
       assigned.forEach(c => {
         if (!grouped[c.campaignName]) grouped[c.campaignName] = [];
         grouped[c.campaignName].push(c);
+      });
+
+      const lines = [];
+      Object.entries(grouped).forEach(([camp, members]) => {
+        lines.push(`🎯 ${camp} (${members.length} Active):`);
+        members.forEach(m => {
+          const idPrefix = m.agentId ? `[${m.agentId}] ` : "";
+          const rolePart = m.role ? ` — ${m.role}` : "";
+          const dialerPart = m.dialer ? ` (${m.dialer})` : "";
+          lines.push(`• ${idPrefix}${m.agentName}${rolePart}${dialerPart}`);
+        });
+        lines.push("");
+      });
+      navigator.clipboard.writeText(lines.join("\n").trim());
+      showToast("📋 Campaign Roster copied (Agent IDs & Full Names)!");
+    }
       });
 
       const lines = [];
