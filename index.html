@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ACQ Ops Tracker — Floor, Leave, Rules &amp; Caller Profiles</title>
+  <title>ACQ Ops Tracker — Floor, Leave, Leaderboard &amp; Campaigns</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,33 +19,43 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+  <!-- TOP NAVIGATION BAR -->
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
       <div class="flex items-center gap-2.5">
         <div class="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg">⚡</div>
         <div>
           <h1 class="font-bold text-slate-100 leading-tight text-sm sm:text-base">ACQ Ops Tracker</h1>
-          <p class="text-[11px] text-slate-400 hidden md:block">Cloud-Synced Floor, Leave &amp; Profiles</p>
+          <p class="text-[11px] text-slate-400 hidden md:block">Cloud-Synced Floor, Campaigns &amp; KPIs</p>
         </div>
       </div>
 
+      <!-- NAVIGATION TABS -->
       <nav class="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/70 overflow-x-auto">
         <button onclick="switchTab('tracker')" id="tab-tracker" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition bg-emerald-600 text-white shadow whitespace-nowrap">👤 My Profile &amp; Shift</button>
+        <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-300 hover:text-white whitespace-nowrap">🏆 Leaderboard</button>
         <button onclick="switchTab('calendar')" id="tab-calendar" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-300 hover:text-white whitespace-nowrap flex items-center gap-1">
-          <span>📅 Leave Calendar</span>
+          <span>📅 Leave</span>
           <span id="pending-leave-badge" class="hidden px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-slate-950 font-bold">0</span>
         </button>
         <button onclick="switchTab('floor')" id="tab-floor" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-300 hover:text-white whitespace-nowrap">📡 Live Floor</button>
-        <button onclick="switchTab('rules')" id="tab-rules" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-300 hover:text-white whitespace-nowrap">📜 Rules &amp; SOP</button>
+        <button onclick="switchTab('rules')" id="tab-rules" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-300 hover:text-white whitespace-nowrap">📜 Rules</button>
         <button onclick="switchTab('admin')" id="tab-admin" class="hidden px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition text-indigo-300 hover:text-white whitespace-nowrap">👑 Admin</button>
       </nav>
 
+      <!-- ADMIN LIVE HEADCOUNT PILL + GOOGLE SIGN-IN + EGYPT CLOCK -->
       <div class="flex items-center gap-2.5">
+        <button id="admin-live-headcount-pill" onclick="switchTab('floor')" title="Click to view Live Floor" class="hidden items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-[11px] font-semibold">
+          <span class="text-emerald-400">🟢 <span id="hdr-duty-count">0</span></span>
+          <span class="text-slate-600">•</span>
+          <span class="text-amber-400">☕ <span id="hdr-break-count">0</span></span>
+        </button>
+
         <div id="auth-area" class="flex items-center">
           <div id="header-gsi-btn"></div>
           <div id="user-profile-chip" class="hidden items-center gap-2 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-full">
             <img id="user-avatar" src="" alt="" class="w-5 h-5 rounded-full hidden" />
-            <span id="user-email-display" class="text-[11px] font-medium text-emerald-300 max-w-[110px] truncate"></span>
+            <span id="user-email-display" class="text-[11px] font-medium text-emerald-300 max-w-[100px] truncate"></span>
             <button onclick="signOutGoogle()" title="Sign out" class="text-[10px] text-slate-400 hover:text-rose-400">✕</button>
           </div>
         </div>
@@ -57,25 +67,32 @@
     </div>
   </header>
 
+  <!-- MAIN CONTENT AREA -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
 
-    <!-- VIEW 1: CALLER PROFILE, STATS, SHIFT TRACKER & HISTORY -->
+    <!-- ========================================================= -->
+    <!-- VIEW 1: CALLER PROFILE, STREAK, STATS, SHIFT & HISTORY    -->
+    <!-- ========================================================= -->
     <section id="view-tracker" class="space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
 
         <div id="locked-profile-header" class="hidden flex-col md:flex-row md:items-center justify-between gap-4">
           <div class="flex-1">
-            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold mb-1.5">
-              <span>🔒 Verified Google Profile</span>
-              <span id="locked-profile-email" class="text-emerald-400/80 font-normal"></span>
-              <span id="locked-admin-badge" class="hidden px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-200 text-[10px]">👑 Admin</span>
+            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold">
+                <span>🔒 Verified Google Profile</span>
+                <span id="locked-profile-email" class="text-emerald-400/80 font-normal"></span>
+              </span>
+              <span id="locked-admin-badge" class="hidden px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] font-bold">👑 Admin</span>
+              <span id="personal-streak-badge" class="hidden px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold">🔥 0 Clean Shifts</span>
             </div>
             <h2 id="locked-profile-name" class="text-lg sm:text-xl font-bold text-slate-100">Agent Name</h2>
+            <p id="locked-campaign-subtitle" class="hidden text-xs text-sky-300 mt-0.5"></p>
           </div>
 
           <div class="flex items-center gap-2.5 self-start md:self-end">
             <button onclick="switchTab('rules')" class="px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-300 flex items-center gap-1.5">
-              <span>📜</span> Floor Rules &amp; Targets
+              <span>📜</span> Floor Rules
             </button>
             <div id="agent-status-pill" class="hidden items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-800 border border-slate-700">
               <span id="status-dot" class="w-3 h-3 rounded-full bg-slate-500"></span>
@@ -99,19 +116,23 @@
             <div>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">👑 Operations Manager Account</span>
               <h3 class="text-base font-bold text-slate-100 mt-1.5">Welcome, Admin (Galaleldin Elashwal)</h3>
-              <p class="text-xs text-slate-300 mt-0.5">All roster changes, approvals, edits, and deletions sync directly to Google Sheets across all devices.</p>
+              <p class="text-xs text-slate-300 mt-0.5">Manage Campaign Assignments, Unassigned Bench, Live Floor, Leave Approvals, and Monthly KPIs.</p>
             </div>
             <div class="flex flex-wrap gap-2 shrink-0">
-              <button onclick="switchTab('floor')" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow">📡 Open Live Floor</button>
-              <button onclick="switchTab('admin')" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow">👑 Open Admin Controls</button>
+              <button onclick="switchTab('floor')" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow">📡 Live Floor</button>
+              <button onclick="switchTab('admin'); switchAdminMainSection('campaigns');" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white shadow">🎯 Campaign Roster</button>
+              <button onclick="switchTab('admin'); switchAdminMainSection('ops');" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow">👑 Shift Logs &amp; KPIs</button>
             </div>
           </div>
         </div>
 
         <div id="agent-console" class="hidden mt-6 pt-6 border-t border-slate-800 space-y-6">
-          <div id="forgotten-shift-banner" class="hidden bg-rose-500/15 border border-rose-500/40 rounded-xl px-4 py-3 text-xs text-rose-200">
+          <!-- UNCLOSED YESTERDAY SHIFT SELF-FIX BANNER -->
+          <div id="forgotten-shift-banner" class="hidden bg-rose-500/15 border border-rose-500/40 rounded-xl px-4 py-3 text-xs text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span id="forgotten-shift-text"></span>
+            <button onclick="openSelfFixShiftModal()" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0">🛠️ Close Yesterday's Shift Now</button>
           </div>
+
           <div id="agent-override-banner" class="hidden bg-sky-500/15 border border-sky-500/40 rounded-xl px-4 py-3 text-xs text-sky-200 flex items-center justify-between">
             <span id="agent-override-text"></span>
           </div>
@@ -217,15 +238,66 @@
       </div>
     </section>
 
-    <!-- VIEW 2: GLOBAL TEAM LEAVE CALENDAR & US HOLIDAYS -->
+    <!-- ========================================================= -->
+    <!-- VIEW 2: LIVE TEAM LEADERBOARD (CALLS, LEADS & STREAKS)    -->
+    <!-- ========================================================= -->
+    <section id="view-leaderboard" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
+        <div>
+          <h2 class="text-base font-bold text-slate-100">🏆 Live Floor Leaderboard — Calls, Leads &amp; Clean Streaks</h2>
+          <p class="text-xs text-slate-400">Updates automatically in real time as Mid-Shift Pulses and EOD KPIs are logged.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button onclick="setLeaderboardRange('today')" id="lb-range-today" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white">Today</button>
+            <button onclick="setLeaderboardRange('week')" id="lb-range-week" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white">7 Days</button>
+            <button onclick="setLeaderboardRange('month')" id="lb-range-month" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white">This Month</button>
+            <button onclick="setLeaderboardRange('all')" id="lb-range-all" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white">All Time</button>
+          </div>
+          <select id="lb-sort-by" onchange="renderLeaderboard()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-100">
+            <option value="calls">Sort: Most Calls</option>
+            <option value="leads">Sort: Most Leads</option>
+            <option value="cph">Sort: Highest Calls/Hr</option>
+            <option value="streak">Sort: Longest Clean Streak</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- TOP 3 PODIUM CARDS -->
+      <div id="leaderboard-podium" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
+      <!-- FULL RANKINGS TABLE -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
+              <th class="py-3 px-3 font-semibold">Rank</th>
+              <th class="py-3 px-3 font-semibold">Agent Name</th>
+              <th class="py-3 px-3 font-semibold">Campaign</th>
+              <th class="py-3 px-3 font-semibold">Total Calls</th>
+              <th class="py-3 px-3 font-semibold">Qualified Leads</th>
+              <th class="py-3 px-3 font-semibold">Avg Calls/Hr</th>
+              <th class="py-3 px-3 font-semibold">Net Hours</th>
+              <th class="py-3 px-3 font-semibold">Clean Streak</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-tbody" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 3: GLOBAL TEAM LEAVE CALENDAR & COVERAGE GUARDRAIL   -->
+    <!-- ========================================================= -->
     <section id="view-calendar" class="hidden space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
         <div>
           <h2 class="text-base font-bold text-slate-100">📅 Global Team Leave Calendar &amp; US Federal Holidays</h2>
-          <p class="text-xs text-slate-400">All approved days off and US Federal Holidays are visible to everyone. Click any day (or "+ Request Day Off") to submit your request.</p>
+          <p class="text-xs text-slate-400">Live working headcount is displayed on every calendar day so floor coverage stays protected.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button onclick="openLeaveRequestModal()" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow">+ Request Day Off</button>
+          <button id="btn-bulk-approve-leaves" onclick="bulkApproveNonConflictingLeaves()" class="hidden px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow">✅ Bulk Approve Safe Pending</button>
           <button onclick="pullFromGoogleSheet(true)" class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200">🔄 Sync</button>
         </div>
       </div>
@@ -290,6 +362,7 @@
                 <th class="py-3 px-3 font-semibold">Agent</th>
                 <th class="py-3 px-3 font-semibold">Leave Type</th>
                 <th class="py-3 px-3 font-semibold">Requested Date</th>
+                <th class="py-3 px-3 font-semibold">Floor Coverage</th>
                 <th class="py-3 px-3 font-semibold">Remaining Quota</th>
                 <th class="py-3 px-3 font-semibold">Notes</th>
                 <th class="py-3 px-3 font-semibold">Status</th>
@@ -301,7 +374,9 @@
         </div>
       </div>
     </section>
-    <!-- VIEW 3: LIVE FLOOR MONITOR -->
+    <!-- ========================================================= -->
+    <!-- VIEW 4: LIVE FLOOR MONITOR                                -->
+    <!-- ========================================================= -->
     <section id="view-floor" class="hidden space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
         <div>
@@ -315,7 +390,7 @@
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4"><div class="text-xs text-slate-400">Total Dialers</div><div id="stat-total" class="mono text-2xl font-bold text-slate-100 mt-1">0</div></div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4"><div class="text-xs text-slate-400">Active Roster</div><div id="stat-total" class="mono text-2xl font-bold text-slate-100 mt-1">0</div></div>
         <div class="bg-slate-900 border border-emerald-500/30 rounded-xl p-4"><div class="text-xs text-emerald-400">🟢 On Duty</div><div id="stat-duty" class="mono text-2xl font-bold text-emerald-400 mt-1">0</div></div>
         <div class="bg-slate-900 border border-amber-500/30 rounded-xl p-4"><div class="text-xs text-amber-400">☕ On Break</div><div id="stat-break" class="mono text-2xl font-bold text-amber-400 mt-1">0</div></div>
         <div class="bg-slate-900 border border-sky-500/30 rounded-xl p-4"><div class="text-xs text-sky-400">🌴 Leave / Day Off</div><div id="stat-leave" class="mono text-2xl font-bold text-sky-400 mt-1">0</div></div>
@@ -332,13 +407,15 @@
           <button onclick="setFloorFilter('FLAGGED')" id="ff-FLAGGED" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">🚩 Flagged</button>
           <button onclick="setFloorFilter('NOT_STARTED')" id="ff-NOT_STARTED" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">⏳ Not Clocked In</button>
         </div>
-        <input type="text" id="floor-search" oninput="renderFloor()" placeholder="Search agent..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500" />
+        <input type="text" id="floor-search" oninput="renderFloor()" placeholder="Search agent or campaign..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500" />
       </div>
 
       <div id="floor-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </section>
 
-    <!-- VIEW 4: FLOOR RULES & SOP -->
+    <!-- ========================================================= -->
+    <!-- VIEW 5: FLOOR RULES & SOP                                 -->
+    <!-- ========================================================= -->
     <section id="view-rules" class="hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -388,155 +465,294 @@
       </div>
     </section>
 
-    <!-- VIEW 5: ADMIN COMMAND CENTER -->
+    <!-- ========================================================= -->
+    <!-- VIEW 6: ADMIN COMMAND CENTER                              -->
+    <!-- ========================================================= -->
     <section id="view-admin" class="hidden space-y-6">
-      <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
         <div>
           <h2 class="text-base font-bold text-slate-100">👑 Admin Command Center</h2>
-          <p class="text-xs text-slate-400">100% Cloud-Synced to Google Sheets — Every edit, deletion, promotion, and threshold updates across all devices automatically.</p>
+          <p class="text-xs text-slate-400">Manage Campaign Assignments, Unassigned Bench, Daily Overrides, Shift Logs, KPIs &amp; Roster.</p>
         </div>
-        <button onclick="pullFromGoogleSheet(true)" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300">🔄 Refresh from Cloud</button>
-      </div>
-
-      <!-- MANUAL DAILY ROSTER STATUS BOARD -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-          <div>
-            <h3 class="text-sm font-bold text-slate-100">🗓️ Daily Roster Status Assignment (Manual Override)</h3>
-            <p class="text-xs text-slate-400">Assign who is Working, Scheduled Off, on Leave, or Absent for any date—updates the shared Calendar &amp; Google Sheet.</p>
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button onclick="switchAdminMainSection('ops')" id="admin-sec-ops" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white">📊 Shift Logs &amp; Roster</button>
+            <button onclick="switchAdminMainSection('campaigns')" id="admin-sec-campaigns" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white">🎯 Campaign Roster</button>
+            <button onclick="switchAdminMainSection('bench')" id="admin-sec-bench" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5">
+              <span>🪑 Unassigned / Bench</span>
+              <span id="bench-count-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-slate-950 font-bold">0</span>
+            </button>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <label class="text-xs text-slate-400">Date:</label>
-            <input type="date" id="override-date" onchange="renderDailyOverrideBoard()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100" />
-            <button onclick="setAllAgentsOverride('Working')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300">Mark All Working</button>
-          </div>
-        </div>
-        <div id="daily-override-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-96 overflow-y-auto pr-1"></div>
-      </div>
-
-      <!-- SUB-VIEW SWITCHER: SHIFT LOGS VS MONTHLY KPI ROLLUP -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
-          <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl self-start">
-            <button onclick="switchAdminSubTab('logs')" id="subtab-logs" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white">📄 Individual Shift Logs</button>
-            <button onclick="switchAdminSubTab('rollup')" id="subtab-rollup" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white">🏆 Monthly KPI &amp; Leave Rollup</button>
-          </div>
-          <button onclick="exportCurrentAdminCSV()" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white self-start sm:self-auto">📥 Export Current View CSV</button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-          <div>
-            <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">From Date</label>
-            <input type="date" id="hist-date-from" onchange="refreshAdminTables()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">To Date</label>
-            <input type="date" id="hist-date-to" onchange="refreshAdminTables()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Agent</label>
-            <select id="hist-agent" onchange="refreshAdminTables()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100"><option value="ALL">All Agents</option></select>
-          </div>
-          <div id="flag-filter-wrap">
-            <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Flag Filter</label>
-            <select id="hist-flag" onchange="refreshAdminTables()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">
-              <option value="ALL">All Logs</option>
-              <option value="FLAGGED_ONLY">🚩 Flagged Logs Only</option>
-              <option value="SHORT_SHIFT">Short Shift</option>
-              <option value="BREAK_OVER">Break Over Limit</option>
-              <option value="LONG_BREAK">Single Break &gt; Cap</option>
-              <option value="LOW_DIALS">Low Calls/Hr</option>
-              <option value="FORGOTTEN_OUT">Forgotten Clock-Out</option>
-            </select>
-          </div>
-          <div class="flex gap-1.5">
-            <button onclick="setQuickDateRange('today')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">Today</button>
-            <button onclick="setQuickDateRange('week')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">7D</button>
-            <button onclick="setQuickDateRange('month')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">Month</button>
-            <button onclick="setQuickDateRange('all')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">All</button>
-          </div>
-        </div>
-
-        <div id="hist-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
-
-        <div id="admin-panel-logs" class="overflow-x-auto border border-slate-800 rounded-xl">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
-                <th class="py-3 px-3 font-semibold">Date</th>
-                <th class="py-3 px-3 font-semibold">Agent</th>
-                <th class="py-3 px-3 font-semibold">In / Out (Egypt)</th>
-                <th class="py-3 px-3 font-semibold">Break</th>
-                <th class="py-3 px-3 font-semibold">Net Hrs</th>
-                <th class="py-3 px-3 font-semibold">Calls / Leads</th>
-                <th class="py-3 px-3 font-semibold">Calls/Hr</th>
-                <th class="py-3 px-3 font-semibold">Flags</th>
-                <th class="py-3 px-3 font-semibold">Notes &amp; Break Reasons</th>
-                <th class="py-3 px-3 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="hist-tbody" class="divide-y divide-slate-800"></tbody>
-          </table>
-        </div>
-
-        <div id="admin-panel-rollup" class="hidden overflow-x-auto border border-slate-800 rounded-xl">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
-                <th class="py-3 px-3 font-semibold">Rank</th>
-                <th class="py-3 px-3 font-semibold">Agent Name</th>
-                <th class="py-3 px-3 font-semibold">Shifts</th>
-                <th class="py-3 px-3 font-semibold">Net Hrs</th>
-                <th class="py-3 px-3 font-semibold">Total Calls</th>
-                <th class="py-3 px-3 font-semibold">Total Leads</th>
-                <th class="py-3 px-3 font-semibold">Avg Calls/Hr</th>
-                <th class="py-3 px-3 font-semibold">Annual Left</th>
-                <th class="py-3 px-3 font-semibold">Casual Left</th>
-                <th class="py-3 px-3 font-semibold">Sick Left</th>
-                <th class="py-3 px-3 font-semibold">UPL Taken</th>
-                <th class="py-3 px-3 font-semibold">Flags</th>
-              </tr>
-            </thead>
-            <tbody id="rollup-tbody" class="divide-y divide-slate-800"></tbody>
-          </table>
+          <button onclick="pullFromGoogleSheet(true)" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300">🔄 Refresh</button>
         </div>
       </div>
 
-      <!-- CLOUD CONFIG & ROSTER GRID -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- ADMIN SECTION A: CAMPAIGN ROSTER (ACTIVE ASSIGNED AGENTS) -->
+      <div id="admin-section-campaigns" class="hidden space-y-5">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div>
-            <h3 class="text-sm font-bold text-slate-100">⚙️ Global Floor Thresholds (Cloud-Synced)</h3>
-            <p class="text-[11px] text-slate-400">Saved directly to your Google Sheet so all callers and devices use the exact same rules.</p>
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-slate-100">🎯 Active Campaign Roster (<span id="assigned-campaign-count">0</span> Assigned)</h3>
+              <p class="text-xs text-slate-400">Edit Alias Name, Role, Campaign, Dialer pill, reorder rows (▲/▼), or move an agent to the Unassigned Bench.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="campaign-filter-select" onchange="renderCampaignBoard()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100">
+                <option value="ALL">All Campaigns</option>
+              </select>
+              <input type="text" id="campaign-search-input" oninput="renderCampaignBoard()" placeholder="Search agent, alias, campaign..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100" />
+              <button onclick="openAddCampaignAgentModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white">+ Assign Agent</button>
+              <button onclick="exportCampaignCSV()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">📥 Export CSV</button>
+            </div>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-[11px] text-slate-400 mb-1">Default Daily Break Limit (mins)</label><input type="number" id="cfg-break-limit" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
-            <div><label class="block text-[11px] text-slate-400 mb-1">Single Break Warning Cap (mins)</label><input type="number" id="cfg-single-break" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
-            <div><label class="block text-[11px] text-slate-400 mb-1">Live Break Overtime Alert (mins)</label><input type="number" id="cfg-live-break-alert" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
-            <div><label class="block text-[11px] text-slate-400 mb-1">Target Full Shift Hours</label><input type="number" step="0.5" id="cfg-target-hours" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
-            <div><label class="block text-[11px] text-slate-400 mb-1">Min Calls / Hour Benchmark</label><input type="number" id="cfg-min-cph" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+
+          <div id="campaign-summary-pills" class="flex flex-wrap gap-2"></div>
+
+          <div class="overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
+                  <th class="py-3 px-2.5 font-semibold w-20">Order</th>
+                  <th class="py-3 px-3 font-semibold">Agent Full Name</th>
+                  <th class="py-3 px-3 font-semibold">Caller / Alias Name</th>
+                  <th class="py-3 px-3 font-semibold">Role</th>
+                  <th class="py-3 px-3 font-semibold">Campaign Name</th>
+                  <th class="py-3 px-3 font-semibold">Dialer / Platform</th>
+                  <th class="py-3 px-3 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="campaign-roster-tbody" class="divide-y divide-slate-800"></tbody>
+            </table>
           </div>
-          <div class="flex items-center justify-between pt-2">
-            <button onclick="saveSettings()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">☁️ Save Global Config to Sheet</button>
+        </div>
+      </div>
+
+      <!-- ADMIN SECTION B: UNASSIGNED / BENCH AGENTS -->
+      <div id="admin-section-bench" class="hidden space-y-5">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-slate-100">🪑 Unassigned / Bench Roster (<span id="bench-roster-count">0</span> Agents)</h3>
+              <p class="text-xs text-slate-400">Agents currently unassigned to a campaign—ready to be placed onto a campaign with one click.</p>
+            </div>
+            <button onclick="openAddCampaignAgentModal(true)" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white">+ Add to Bench</button>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
+                  <th class="py-3 px-3 font-semibold">Agent Full Name</th>
+                  <th class="py-3 px-3 font-semibold">Caller / Alias Name</th>
+                  <th class="py-3 px-3 font-semibold">Preferred Role</th>
+                  <th class="py-3 px-3 font-semibold">Assign Campaign</th>
+                  <th class="py-3 px-3 font-semibold">Dialer</th>
+                  <th class="py-3 px-3 font-semibold text-right">Quick Assign / Remove</th>
+                </tr>
+              </thead>
+              <tbody id="bench-roster-tbody" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN SECTION C: DAILY OVERRIDES, SHIFT LOGS, KPI ROLLUP & ROSTER -->
+      <div id="admin-section-ops" class="space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-slate-100">🗓️ Daily Roster Status Assignment (Manual Override)</h3>
+              <p class="text-xs text-slate-400">Assign who is Working, Scheduled Off, on Leave, or Absent for any date—updates the shared Calendar &amp; Google Sheet.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="text-xs text-slate-400">Date:</label>
+              <input type="date" id="override-date" onchange="renderDailyOverrideBoard()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100" />
+              <button onclick="setAllAgentsOverride('Working')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300">Mark All Working</button>
+            </div>
+          </div>
+          <div id="daily-override-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-96 overflow-y-auto pr-1"></div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl self-start">
+              <button onclick="switchAdminSubTab('logs')" id="subtab-logs" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white">📄 Individual Shift Logs</button>
+              <button onclick="switchAdminSubTab('rollup')" id="subtab-rollup" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white">🏆 Monthly KPI &amp; Leave Rollup</button>
+            </div>
+            <button onclick="exportCurrentAdminCSV()" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white self-start sm:self-auto">📥 Export Current View CSV</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+            <div>
+              <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">From Date</label>
+              <input type="date" id="hist-date-from" onchange="refreshAdminTables()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">To Date</label>
+              <input type="date" id="hist-date-to" onchange="refreshAdminTables()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Agent (Includes Archived)</label>
+              <select id="hist-agent" onchange="refreshAdminTables()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100"><option value="ALL">All Agents</option></select>
+            </div>
+            <div id="flag-filter-wrap">
+              <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Flag Filter</label>
+              <select id="hist-flag" onchange="refreshAdminTables()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100">
+                <option value="ALL">All Logs</option>
+                <option value="FLAGGED_ONLY">🚩 Flagged Logs Only</option>
+                <option value="SHORT_SHIFT">Short Shift</option>
+                <option value="BREAK_OVER">Break Over Limit</option>
+                <option value="LONG_BREAK">Single Break &gt; Cap</option>
+                <option value="LOW_DIALS">Low Calls/Hr</option>
+                <option value="FORGOTTEN_OUT">Forgotten Clock-Out</option>
+              </select>
+            </div>
+            <div class="flex gap-1.5">
+              <button onclick="setQuickDateRange('today')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">Today</button>
+              <button onclick="setQuickDateRange('week')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">7D</button>
+              <button onclick="setQuickDateRange('month')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">Month</button>
+              <button onclick="setQuickDateRange('all')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">All</button>
+            </div>
+          </div>
+
+          <div id="hist-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+
+          <div id="admin-panel-logs" class="overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
+                  <th class="py-3 px-3 font-semibold">Date</th>
+                  <th class="py-3 px-3 font-semibold">Agent</th>
+                  <th class="py-3 px-3 font-semibold">In / Out (Egypt)</th>
+                  <th class="py-3 px-3 font-semibold">Break</th>
+                  <th class="py-3 px-3 font-semibold">Net Hrs</th>
+                  <th class="py-3 px-3 font-semibold">Calls / Leads</th>
+                  <th class="py-3 px-3 font-semibold">Calls/Hr</th>
+                  <th class="py-3 px-3 font-semibold">Flags</th>
+                  <th class="py-3 px-3 font-semibold">Notes &amp; Break Reasons</th>
+                  <th class="py-3 px-3 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hist-tbody" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+
+          <div id="admin-panel-rollup" class="hidden overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
+                  <th class="py-3 px-3 font-semibold">Rank</th>
+                  <th class="py-3 px-3 font-semibold">Agent Name</th>
+                  <th class="py-3 px-3 font-semibold">Shifts</th>
+                  <th class="py-3 px-3 font-semibold">Net Hrs</th>
+                  <th class="py-3 px-3 font-semibold">Total Calls</th>
+                  <th class="py-3 px-3 font-semibold">Total Leads</th>
+                  <th class="py-3 px-3 font-semibold">Avg Calls/Hr</th>
+                  <th class="py-3 px-3 font-semibold">Annual Left</th>
+                  <th class="py-3 px-3 font-semibold">Casual Left</th>
+                  <th class="py-3 px-3 font-semibold">Sick Left</th>
+                  <th class="py-3 px-3 font-semibold">UPL Taken</th>
+                  <th class="py-3 px-3 font-semibold">Flags</th>
+                </tr>
+              </thead>
+              <tbody id="rollup-tbody" class="divide-y divide-slate-800"></tbody>
+            </table>
           </div>
         </div>
 
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div>
-            <h3 class="text-sm font-bold text-slate-100">👥 Roster, Admin Roles &amp; Break Limits (<span id="roster-count">0</span>)</h3>
-            <p class="text-[11px] text-slate-400">Add callers (syncs to Google login list), promote someone to Admin, or unlink a bound email.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-100">⚙️ Global Floor Thresholds &amp; Coverage Guardrail</h3>
+              <p class="text-[11px] text-slate-400">Saved directly to your Google Sheet so all callers and devices use the exact same rules.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="block text-[11px] text-slate-400 mb-1">Default Daily Break Limit (mins)</label><input type="number" id="cfg-break-limit" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+              <div><label class="block text-[11px] text-slate-400 mb-1">Single Break Warning Cap (mins)</label><input type="number" id="cfg-single-break" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+              <div><label class="block text-[11px] text-slate-400 mb-1">Live Break Overtime Alert (mins)</label><input type="number" id="cfg-live-break-alert" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+              <div><label class="block text-[11px] text-slate-400 mb-1">Target Full Shift Hours</label><input type="number" step="0.5" id="cfg-target-hours" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+              <div><label class="block text-[11px] text-slate-400 mb-1">Min Calls / Hour Benchmark</label><input type="number" id="cfg-min-cph" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+              <div><label class="block text-[11px] text-slate-400 mb-1">Min Floor Coverage (Working Agents)</label><input type="number" id="cfg-min-coverage" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+            </div>
+            <div class="flex items-center justify-between pt-2">
+              <button onclick="saveSettings()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">☁️ Save Global Config to Sheet</button>
+            </div>
           </div>
-          <div class="flex gap-2">
-            <input type="text" id="new-agent-name" placeholder="Full Name of New Agent..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
-            <button onclick="addAgent()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">+ Add</button>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-100">👥 Roster, Admin Roles, Break Limits &amp; Archive (<span id="roster-count">0</span> Active)</h3>
+              <p class="text-[11px] text-slate-400">Add callers, promote to Admin, unlink Gmail, or Archive departed callers (preserves historical logs).</p>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="new-agent-name" placeholder="Full Name of New Agent..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
+              <button onclick="addAgent()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">+ Add</button>
+            </div>
+            <div id="roster-list" class="max-h-96 overflow-y-auto divide-y divide-slate-800 border border-slate-800 rounded-xl"></div>
           </div>
-          <div id="roster-list" class="max-h-96 overflow-y-auto divide-y divide-slate-800 border border-slate-800 rounded-xl"></div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- ALL MODALS -->
+  <!-- ========================================================= -->
+  <!-- ALL MODALS                                                -->
+  <!-- ========================================================= -->
+
+  <!-- ADD / ASSIGN CAMPAIGN AGENT MODAL -->
+  <div id="modal-add-campaign-agent" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div>
+        <h3 id="camp-modal-title" class="text-base font-bold text-slate-100">🎯 Assign Agent to Campaign</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Configure caller alias, role, campaign, and dialer platform.</p>
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Agent Full Name *</label>
+        <select id="camp-agent-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100"></select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Caller / Alias Name</label>
+          <input type="text" id="camp-alias-input" placeholder="e.g. Sarah, Emma Lillian" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Role</label>
+          <input type="text" id="camp-role-input" list="role-suggestions" placeholder="e.g. Appointment Setter" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
+          <datalist id="role-suggestions">
+            <option value="Appointment Setter">
+            <option value="Cold Calling VA">
+            <option value="Virtual Assistant">
+            <option value="Campaign Manager">
+            <option value="Acquisition Manager">
+          </datalist>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Campaign Name (Leave blank for Bench)</label>
+          <input type="text" id="camp-name-input" list="campaign-suggestions" placeholder="e.g. Tracey Company" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
+          <datalist id="campaign-suggestions"></datalist>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Dialer / Platform</label>
+          <input type="text" id="camp-dialer-input" list="dialer-suggestions" placeholder="e.g. Xencall, Dialpad" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" />
+          <datalist id="dialer-suggestions">
+            <option value="Xencall">
+            <option value="Dialpad">
+            <option value="Salesfinity">
+            <option value="BatchDialer">
+            <option value="ReadyMode">
+            <option value="Podio">
+          </datalist>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('modal-add-campaign-agent')" class="px-4 py-2 rounded-lg text-xs text-slate-400 hover:text-white">Cancel</button>
+        <button onclick="saveCampaignAssignmentModal()" class="px-5 py-2 rounded-lg text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white">Save Assignment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEAVE REQUEST MODAL WITH COVERAGE WARNING -->
   <div id="modal-leave-req" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div><h3 class="text-base font-bold text-slate-100">📅 Request Individual Days Off</h3><p class="text-xs text-slate-400 mt-0.5">Pick your leave type and add one or more individual dates.</p></div>
@@ -558,6 +774,7 @@
           <button type="button" onclick="addSelectedLeaveDate()" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white">+ Add Day</button>
         </div>
         <div id="selected-leave-dates-list" class="flex flex-wrap gap-1.5 mt-2.5 min-h-[28px]"></div>
+        <div id="modal-coverage-warning" class="hidden mt-2 bg-amber-500/15 border border-amber-500/40 rounded-lg px-3 py-2 text-[11px] text-amber-200"></div>
       </div>
       <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Reason / Notes (Optional)</label><textarea id="leave-notes" rows="2" placeholder="Add any helpful details for your manager..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100"></textarea></div>
       <div id="leave-error" class="hidden text-xs text-rose-400"></div>
@@ -568,6 +785,7 @@
     </div>
   </div>
 
+  <!-- REASSIGN LEAVE MODAL -->
   <div id="modal-reassign-leave" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
       <div><h3 class="text-base font-bold text-slate-100">🔄 Reassign Leave Day</h3><p id="reassign-leave-subtitle" class="text-xs text-slate-400 mt-0.5">Move this day off to a different date.</p></div>
@@ -580,6 +798,7 @@
     </div>
   </div>
 
+  <!-- 1-TIME PROFILE LINK MODAL -->
   <div id="modal-claim-profile" class="fixed inset-0 bg-black/85 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div>
@@ -592,6 +811,7 @@
     </div>
   </div>
 
+  <!-- ADMIN PROFILE INSPECTOR MODAL -->
   <div id="modal-inspect-agent" class="fixed inset-0 bg-black/85 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
       <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-4">
@@ -625,6 +845,7 @@
     </div>
   </div>
 
+  <!-- START BREAK MODAL (INCLUDES MEETING) -->
   <div id="modal-break" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <h3 class="text-base font-bold text-slate-100">☕ Start Break — Select Reason</h3>
@@ -632,8 +853,9 @@
       <div class="grid grid-cols-2 gap-2.5">
         <button onclick="confirmBreak('🍽️ Meal / Lunch')" class="p-3 rounded-xl bg-slate-800 hover:bg-amber-600/20 hover:border-amber-500 border border-slate-700 text-left text-xs font-semibold text-slate-200 transition">🍽️ Meal / Lunch</button>
         <button onclick="confirmBreak('🕌 Prayer')" class="p-3 rounded-xl bg-slate-800 hover:bg-amber-600/20 hover:border-amber-500 border border-slate-700 text-left text-xs font-semibold text-slate-200 transition">🕌 Prayer</button>
+        <button onclick="confirmBreak('🤝 Meeting')" class="p-3 rounded-xl bg-slate-800 hover:bg-sky-600/20 hover:border-sky-500 border border-slate-700 text-left text-xs font-semibold text-slate-200 transition">🤝 Meeting</button>
         <button onclick="confirmBreak('🚻 Restroom / Water')" class="p-3 rounded-xl bg-slate-800 hover:bg-amber-600/20 hover:border-amber-500 border border-slate-700 text-left text-xs font-semibold text-slate-200 transition">🚻 Restroom / Water</button>
-        <button onclick="confirmBreak('💻 Technical / Internet')" class="p-3 rounded-xl bg-slate-800 hover:bg-amber-600/20 hover:border-amber-500 border border-slate-700 text-left text-xs font-semibold text-slate-200 transition">💻 Technical / Internet</button>
+        <button onclick="confirmBreak('💻 Technical / Internet')" class="col-span-2 p-3 rounded-xl bg-slate-800 hover:bg-amber-600/20 hover:border-amber-500 border border-slate-700 text-left text-xs font-semibold text-slate-200 transition">💻 Technical / Internet</button>
       </div>
       <div class="pt-1">
         <label class="block text-[11px] text-slate-400 mb-1">Or enter custom reason:</label>
@@ -646,9 +868,41 @@
     </div>
   </div>
 
+  <!-- SELF-FIX UNCLOSED YESTERDAY SHIFT MODAL -->
+  <div id="modal-selffix-shift" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-rose-500/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300">🛠️ Self-Fix Unclosed Shift</span>
+        <h3 class="text-base font-bold text-slate-100 mt-1">Close Your Earlier Shift</h3>
+        <p id="selffix-subtitle" class="text-xs text-slate-400 mt-0.5">Enter the exact time you finished and your EOD numbers from that shift.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Actual Clock-Out Time *</label>
+          <input type="time" step="1" id="selffix-clockout" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs mono text-slate-100" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Net Hours Worked *</label>
+          <input type="number" step="0.1" min="0" max="15" id="selffix-nethours" placeholder="e.g. 8.0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs mono text-slate-100" />
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Total Calls *</label><input type="number" min="0" id="selffix-calls" placeholder="240" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Talk Mins *</label><input type="number" min="0" id="selffix-talk" placeholder="120" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Qual. Leads *</label><input type="number" min="0" id="selffix-leads" placeholder="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+      </div>
+      <div id="selffix-error" class="hidden text-xs text-rose-400"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('modal-selffix-shift')" class="px-4 py-2 rounded-lg text-xs text-slate-400 hover:text-white">Cancel</button>
+        <button onclick="confirmSelfFixShift()" class="px-5 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white">Save &amp; Close Shift</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MID-SHIFT PULSE MODAL -->
   <div id="modal-pulse" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-      <div><h3 class="text-base font-bold text-slate-100">⚡ Mid-Shift Dialing Pulse</h3><p class="text-xs text-slate-400 mt-0.5">Update your cumulative calls &amp; leads so far this shift.</p></div>
+      <div><h3 class="text-base font-bold text-slate-100">⚡ Mid-Shift Dialing Pulse</h3><p class="text-xs text-slate-400 mt-0.5">Update your cumulative calls &amp; leads so far this shift (updates Leaderboard live).</p></div>
       <div class="grid grid-cols-2 gap-3">
         <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Calls So Far *</label><input type="number" min="0" id="pulse-calls" placeholder="e.g. 120" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100" /></div>
         <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Leads So Far *</label><input type="number" min="0" id="pulse-leads" placeholder="e.g. 2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100" /></div>
@@ -661,6 +915,7 @@
     </div>
   </div>
 
+  <!-- END-OF-SHIFT CLOCK OUT MODAL WITH LIVE AUTO-SUMMARY & TYPO GUARD -->
   <div id="modal-clockout" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div><h3 class="text-base font-bold text-slate-100">🔴 End-of-Shift KPI Gate &amp; Clock Out</h3><p id="eod-modal-subtitle" class="text-xs text-slate-400 mt-0.5">Enter the calls, talk minutes, and leads added during this session.</p></div>
@@ -676,10 +931,21 @@
         </select>
       </div>
       <div class="grid grid-cols-3 gap-3">
-        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Calls This Session *</label><input type="number" min="0" id="eod-calls" placeholder="e.g. 240" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100" /></div>
-        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Talk Mins *</label><input type="number" min="0" id="eod-talk" placeholder="e.g. 135" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100" /></div>
-        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Qual. Leads *</label><input type="number" min="0" id="eod-leads" placeholder="e.g. 4" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100" /></div>
+        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Calls This Session *</label><input type="number" min="0" id="eod-calls" oninput="updateEodAutoSummaryPreview()" placeholder="e.g. 240" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100" /></div>
+        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Talk Mins *</label><input type="number" min="0" id="eod-talk" oninput="updateEodAutoSummaryPreview()" placeholder="e.g. 135" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100" /></div>
+        <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Qual. Leads *</label><input type="number" min="0" id="eod-leads" oninput="updateEodAutoSummaryPreview()" placeholder="e.g. 4" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100" /></div>
       </div>
+
+      <!-- LIVE EOD AUTO-SUMMARY & TYPO GUARD BOX -->
+      <div id="eod-autosummary-box" class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-1.5 text-xs">
+        <div class="flex items-center justify-between text-slate-300">
+          <span>📋 Live EOD Summary Preview:</span>
+          <span id="eod-preview-status" class="font-bold text-emerald-400">Ready</span>
+        </div>
+        <div id="eod-preview-metrics" class="mono text-[11px] text-slate-200">Net Shift: 0.00h • Total Calls: 0 • Pace: 0.0/hr</div>
+        <div id="eod-typo-warning" class="hidden text-[11px] font-semibold text-amber-300 pt-1"></div>
+      </div>
+
       <div><label class="block text-[11px] font-semibold text-slate-300 mb-1">Shift Notes / Blockers (Optional)</label><textarea id="eod-notes" rows="2" placeholder="Any list issues, callbacks, or details..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100"></textarea></div>
       <div id="eod-error" class="hidden text-xs text-rose-400 font-medium"></div>
       <div class="flex items-center justify-end gap-2 pt-2">
@@ -689,6 +955,7 @@
     </div>
   </div>
 
+  <!-- QUICK-EDIT SHIFT RECORD MODAL -->
   <div id="modal-edit-log" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
       <div><h3 class="text-base font-bold text-slate-100">✏️ Quick-Edit Shift Record</h3><p id="edit-log-subtitle" class="text-xs text-slate-400 mt-0.5">Adjust typos or override shift metrics.</p></div>
@@ -710,6 +977,7 @@
     </div>
   </div>
 
+  <!-- DAILY FLOOR HANDOFF MODAL -->
   <div id="modal-handoff" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
       <div><h3 class="text-base font-bold text-slate-100">📋 Daily Floor Handoff Report</h3><p class="text-xs text-slate-400">Includes manual roster overrides, approved leaves, dial rankings, and alerts.</p></div>
@@ -724,7 +992,7 @@
   <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl text-xs font-medium hidden z-50"></div>
   <script>
     // =========================================================
-    // 1. CLOUD-FIRST CONFIGURATION & CONSTANTS
+    // 1. CLOUD-FIRST CONFIGURATION, ROSTER & CAMPAIGN SEEDS
     // =========================================================
     const EGYPT_TZ = "Africa/Cairo";
     const ADMIN_PROFILE_NAME = "Admin (Galaleldin Elashwal)";
@@ -760,6 +1028,29 @@
       "Rawan Mohamed Ehab Munir",
       "Bimen Reglant Omail Soryal",
       "Rana Hamed Hussein Aboeissa"
+    ];
+
+    const DEFAULT_CAMPAIGN_ASSIGNMENTS = [
+      { sortOrder: 1, agentName: "Hend Mahmoud Mohamed Elsaied Ahmed Megahed", aliasName: "Emma Lillian", role: "Virtual Assistant", campaignName: "SFR Unlimited", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 2, agentName: "Mena Ashraf Mohamed Hassan", aliasName: "Rose Blackwood", role: "Virtual Assistant", campaignName: "R352", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 3, agentName: "Sondos Mostafa Mohamed ElSayed", aliasName: "Sandra", role: "Appointment Setter", campaignName: "BOC", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 4, agentName: "Youssef Mohamed Sayed Ibrahim", aliasName: "Jason", role: "Appointment Setter", campaignName: "BOC", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 5, agentName: "Salma Mohamed Ezzat Farag", aliasName: "Jessica Mathews", role: "Campaign Manager", campaignName: "Tracey Company", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 6, agentName: "Shahd Mohamed Salah Mahmoud", aliasName: "Zoe", role: "Appointment Setter", campaignName: "Tracey Company", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 7, agentName: "Ahmed Attia Mohamed Attia", aliasName: "Brian", role: "Appointment Setter", campaignName: "Tracey Company", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 8, agentName: "Mostafa Essam Mostafa Elmorsy", aliasName: "Jack", role: "Appointment Setter", campaignName: "Tracey Company", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 9, agentName: "Sarah Said Zakaria Mohamed", aliasName: "Sarah", role: "Appointment Setter", campaignName: "Tracey Company", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 10, agentName: "Reem Ahmed Mahfouz Hemdan", aliasName: "Rachel", role: "Appointment Setter", campaignName: "Tracey Company", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 11, agentName: "Mohamed Ahmed Elkotb Abdelhameed", aliasName: "Mark", role: "Appointment Setter", campaignName: "Tracey Company", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 12, agentName: "Sama Mohamed khamis", aliasName: "Ella", role: "Appointment Setter", campaignName: "Valley Home Offers", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 13, agentName: "Sohila Tarek Hussien Mohamed", aliasName: "Sarah", role: "Cold Calling VA", campaignName: "Gobu", dialer: "Xencall", status: "ASSIGNED" },
+      { sortOrder: 14, agentName: "Radwa Mohamed Elsayed Bdeir", aliasName: "Jessica", role: "Appointment Setter", campaignName: "Gobu", dialer: "Dialpad", status: "ASSIGNED" },
+      { sortOrder: 15, agentName: "Mahmoud Adel Mahmoud Besis", aliasName: "Jacob", role: "Appointment Setter", campaignName: "Gobu", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 16, agentName: "Aml Saied Hassan Badawy", aliasName: "Jennie", role: "Cold Calling VA", campaignName: "Equal Housing ACQ", dialer: "Xencall", status: "ASSIGNED" },
+      { sortOrder: 17, agentName: "Habiba Tarek Zaky Hussein", aliasName: "Helen Anderson", role: "Cold Calling VA", campaignName: "Equal Housing ACQ", dialer: "Xencall", status: "ASSIGNED" },
+      { sortOrder: 18, agentName: "Mariam Abdelmoneim Samir Abdelmoneim", aliasName: "Linda Johnson", role: "Campaign Manager", campaignName: "Local Honest HB", dialer: "", status: "ASSIGNED" },
+      { sortOrder: 19, agentName: "Nivin Mohamed Mohamed Gamal", aliasName: "", role: "", campaignName: "", dialer: "", status: "BENCH" },
+      { sortOrder: 20, agentName: "Arwa Tarek Hessien mohamed", aliasName: "", role: "", campaignName: "", dialer: "", status: "BENCH" }
     ];
 
     const LEAVE_QUOTAS = {
@@ -894,19 +1185,22 @@
     }
 
     // =========================================================
-    // 3. IN-MEMORY CLOUD STATE (ONLY GOOGLE AUTH SESSION STORED)
+    // 3. IN-MEMORY CLOUD STATE & AUDIO CHIME ENGINE
     // =========================================================
     let state = {
       agents: [...DEFAULT_AGENTS],
+      archivedAgents: [],
       agentBreakLimits: {},
       adminAgents: [],
       userProfiles: {},
+      campaignAssignments: JSON.parse(JSON.stringify(DEFAULT_CAMPAIGN_ASSIGNMENTS)),
       settings: {
         breakLimit: 80,
         singleBreakCap: 30,
         liveBreakAlertMins: 20,
         targetHours: 8,
-        minCallsPerHr: 25
+        minCallsPerHr: 25,
+        minFloorCoverage: 22
       },
       logs: [],
       leaves: [],
@@ -914,7 +1208,9 @@
       googleUser: JSON.parse(localStorage.getItem("acq_google_user")) || null,
       selectedAgent: "",
       floorFilter: "ALL",
+      adminMainSection: "ops",
       adminSubTab: "logs",
+      lbRange: "today",
       personalStatsRange: "week",
       personalHistTab: "shifts",
       calYear: Number(getEgyptDateStr().slice(0, 4)),
@@ -922,8 +1218,29 @@
       modalSelectedDates: [],
       inspectedAgentName: "",
       lastWriteTs: 0,
-      isSubmitting: false
+      isSubmitting: false,
+      isFetching: false,
+      warnedBreakKey: ""
     };
+
+    function playBreakWarningChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.setValueAtTime(660, ctx.currentTime + 0.18);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.46);
+      } catch (e) {}
+    }
 
     function saveAuthSession() {
       if (state.googleUser) {
@@ -933,13 +1250,21 @@
       }
     }
 
+    function getActiveAgents() {
+      return state.agents.filter(a => !state.archivedAgents.includes(a));
+    }
+
     function getAllClaimableProfiles() {
-      return [ADMIN_PROFILE_NAME, ...[...state.agents].sort((a, b) => a.localeCompare(b))];
+      return [ADMIN_PROFILE_NAME, ...getActiveAgents().sort((a, b) => a.localeCompare(b))];
     }
 
     function getAgentBreakLimit(agentName) {
       const custom = state.agentBreakLimits[agentName];
       return (custom !== undefined && custom !== null && custom !== "") ? Number(custom) : Number(state.settings.breakLimit);
+    }
+
+    function getAgentCampaignInfo(agentName) {
+      return state.campaignAssignments.find(c => c.agentName === agentName) || null;
     }
 
     function getBoundEmailForAgent(agentName) {
@@ -958,27 +1283,29 @@
       return boundName === ADMIN_PROFILE_NAME || state.adminAgents.includes(boundName);
     }
 
-    function getAgentLeaveBalances(agentName, yearStr = getEgyptDateStr().slice(0, 4)) {
-      const usedDatesByType = {
-        "Annual": new Set(),
-        "Casual": new Set(),
-        "Sick Leave": new Set(),
-        "UPL": new Set()
-      };
+    function getAgentCleanStreak(agentName) {
+      const closedLogs = state.logs
+        .filter(l => l.agentName === agentName && l.status === "OFF_SHIFT")
+        .sort((a, b) => sanitizeDateField(b.date).localeCompare(sanitizeDateField(a.date)));
+      let streak = 0;
+      for (const l of closedLogs) {
+        const badFlags = (l.flags || []).filter(f => ["SHORT_SHIFT", "BREAK_OVER", "LONG_BREAK", "LOW_DIALS", "ADMIN_FORCED_OUT", "FORGOTTEN_OUT"].includes(f));
+        if (badFlags.length === 0) streak++;
+        else break;
+      }
+      return streak;
+    }
 
+    function getAgentLeaveBalances(agentName, yearStr = getEgyptDateStr().slice(0, 4)) {
+      const usedDatesByType = { "Annual": new Set(), "Casual": new Set(), "Sick Leave": new Set(), "UPL": new Set() };
       state.leaves.forEach(lv => {
         if (lv.agentName !== agentName || lv.status !== "APPROVED") return;
         const d = sanitizeDateField(lv.date || lv.startDate);
-        if (d && d.startsWith(yearStr) && usedDatesByType[lv.leaveType]) {
-          usedDatesByType[lv.leaveType].add(d);
-        }
+        if (d && d.startsWith(yearStr) && usedDatesByType[lv.leaveType]) usedDatesByType[lv.leaveType].add(d);
       });
-
       Object.entries(state.dailyOverrides).forEach(([key, val]) => {
         const [d, aName] = key.split("|");
-        if (aName === agentName && d && d.startsWith(yearStr) && usedDatesByType[val]) {
-          usedDatesByType[val].add(d);
-        }
+        if (aName === agentName && d && d.startsWith(yearStr) && usedDatesByType[val]) usedDatesByType[val].add(d);
       });
 
       const annualUsed = usedDatesByType["Annual"].size;
@@ -1025,6 +1352,16 @@
       return "Working";
     }
 
+    function getDateWorkingCoverage(dateStr) {
+      const activeList = getActiveAgents();
+      let workingCount = 0;
+      activeList.forEach(a => {
+        const st = getEffectiveDailyAssignment(dateStr, a);
+        if (st === "Working") workingCount++;
+      });
+      return { working: workingCount, total: activeList.length, off: activeList.length - workingCount };
+    }
+
     function showToast(msg) {
       const el = document.getElementById("toast");
       el.textContent = msg;
@@ -1034,7 +1371,7 @@
     }
 
     // =========================================================
-    // 4. OFFICIAL GOOGLE SIGN-IN & CLOUD SYNC ENGINE
+    // 4. GOOGLE SIGN-IN & 5s ACTIVE-TAB CLOUD SYNC ENGINE
     // =========================================================
     let gsiRendered = false;
 
@@ -1095,10 +1432,15 @@
 
     function updateAdminTabVisibility() {
       const adminTabBtn = document.getElementById("tab-admin");
+      const headcountPill = document.getElementById("admin-live-headcount-pill");
       if (isCurrentUserAdmin()) {
         adminTabBtn.classList.remove("hidden");
+        headcountPill.classList.remove("hidden");
+        headcountPill.classList.add("flex");
       } else {
         adminTabBtn.classList.add("hidden");
+        headcountPill.classList.add("hidden");
+        headcountPill.classList.remove("flex");
         if (!document.getElementById("view-admin").classList.contains("hidden")) {
           switchTab("tracker");
         }
@@ -1112,11 +1454,7 @@
         const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
 
         const email = payload.email.toLowerCase().trim();
-        state.googleUser = {
-          email,
-          name: payload.name,
-          picture: payload.picture || ""
-        };
+        state.googleUser = { email, name: payload.name, picture: payload.picture || "" };
         saveAuthSession();
 
         pullFromGoogleSheet(true).then(() => {
@@ -1172,9 +1510,7 @@
         email: email,
         agentName: agentName,
         linkedAt: new Date().toISOString()
-      }).finally(() => {
-        state.isSubmitting = false;
-      });
+      }).finally(() => { state.isSubmitting = false; });
 
       closeModal("modal-claim-profile");
       initGoogleIdentity();
@@ -1198,18 +1534,16 @@
 
     async function syncPayloadToCloud(payload) {
       state.lastWriteTs = Date.now();
-      document.getElementById("sync-text").textContent = "Egypt Time • Saving to Cloud...";
+      document.getElementById("sync-text").textContent = "Egypt Time • Saving...";
       try {
         await fetch(SHEET_WEBAPP_URL, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({
-            ...payload,
-            userEmail: state.googleUser?.email || ""
-          })
+          body: JSON.stringify({ ...payload, userEmail: state.googleUser?.email || "" })
         });
         document.getElementById("sync-text").textContent = "Egypt Time • Cloud Synced";
+        setTimeout(() => pullFromGoogleSheet(true), 1500);
       } catch (e) {
         document.getElementById("sync-text").textContent = "Egypt Time • Sync Error";
       }
@@ -1219,17 +1553,22 @@
       const rosterPayload = state.agents.map(name => ({
         agentName: name,
         breakLimit: state.agentBreakLimits[name] ?? "",
-        isAdmin: state.adminAgents.includes(name)
+        isAdmin: state.adminAgents.includes(name),
+        isArchived: state.archivedAgents.includes(name)
       }));
-      syncPayloadToCloud({
-        recordType: "ROSTER_SYNC",
-        roster: rosterPayload
-      });
+      syncPayloadToCloud({ recordType: "ROSTER_SYNC", roster: rosterPayload });
+    }
+
+    function syncCampaignsToCloud() {
+      state.campaignAssignments.forEach((item, idx) => { item.sortOrder = idx + 1; });
+      syncPayloadToCloud({ recordType: "CAMPAIGNS_SYNC", assignments: state.campaignAssignments });
     }
 
     async function pullFromGoogleSheet(force = false) {
-      if (!force && (Date.now() - state.lastWriteTs < 4500)) return;
+      if (state.isFetching) return;
+      if (!force && (Date.now() - state.lastWriteTs < 4000)) return;
 
+      state.isFetching = true;
       document.getElementById("sync-text").textContent = "Egypt Time • Syncing...";
       try {
         const res = await fetch(SHEET_WEBAPP_URL + "?t=" + Date.now());
@@ -1249,6 +1588,7 @@
             const remoteAgents = [];
             const remoteLimits = {};
             const remoteAdmins = [];
+            const remoteArchived = [];
             data.roster.forEach(r => {
               const nm = String(r["Agent Name"] || "").trim();
               if (!nm) return;
@@ -1256,15 +1596,30 @@
               if (r["Break Limit"] !== "" && r["Break Limit"] !== undefined && r["Break Limit"] !== null) {
                 remoteLimits[nm] = Number(r["Break Limit"]);
               }
-              if (String(r["Is Admin"]).toUpperCase() === "TRUE") {
-                remoteAdmins.push(nm);
-              }
+              if (String(r["Is Admin"]).toUpperCase() === "TRUE") remoteAdmins.push(nm);
+              if (String(r["Is Archived"]).toUpperCase() === "TRUE") remoteArchived.push(nm);
             });
             if (remoteAgents.length > 0) {
               state.agents = remoteAgents;
               state.agentBreakLimits = remoteLimits;
               state.adminAgents = remoteAdmins;
+              state.archivedAgents = remoteArchived;
             }
+          }
+
+          if (Array.isArray(data.campaigns) && data.campaigns.length > 0) {
+            state.campaignAssignments = data.campaigns
+              .map((c, idx) => ({
+                sortOrder: Number(c["Sort Order"] || idx + 1),
+                agentName: String(c["Agent Name"] || "").trim(),
+                aliasName: String(c["Alias Name"] || "").trim(),
+                role: String(c["Role"] || "").trim(),
+                campaignName: String(c["Campaign Name"] || "").trim(),
+                dialer: String(c["Dialer"] || "").trim(),
+                status: String(c["Status"] || (c["Campaign Name"] ? "ASSIGNED" : "BENCH")).trim()
+              }))
+              .filter(c => c.agentName)
+              .sort((a, b) => a.sortOrder - b.sortOrder);
           }
 
           if (Array.isArray(data.profiles)) {
@@ -1276,11 +1631,7 @@
             });
             state.userProfiles = profMap;
             const bound = getLockedAgentNameForCurrentUser();
-            if (bound && getAllClaimableProfiles().includes(bound)) {
-              state.selectedAgent = bound;
-            } else {
-              state.selectedAgent = "";
-            }
+            state.selectedAgent = (bound && getAllClaimableProfiles().includes(bound)) ? bound : "";
           }
 
           if (Array.isArray(data.logs)) {
@@ -1347,23 +1698,401 @@
         }
       } catch (err) {
         document.getElementById("sync-text").textContent = "Egypt Time • Pull Error";
+      } finally {
+        state.isFetching = false;
       }
     }
+
     // =========================================================
-    // 5. ADMIN MANUAL DAILY ROSTER STATUS OVERRIDES
+    // 5. ADMIN CAMPAIGN ROSTER & UNASSIGNED BENCH MANAGEMENT
+    // =========================================================
+    function switchAdminMainSection(sec) {
+      state.adminMainSection = sec;
+      const map = {
+        ops: { btn: "admin-sec-ops", panel: "admin-section-ops" },
+        campaigns: { btn: "admin-sec-campaigns", panel: "admin-section-campaigns" },
+        bench: { btn: "admin-sec-bench", panel: "admin-section-bench" }
+      };
+      Object.entries(map).forEach(([k, v]) => {
+        const b = document.getElementById(v.btn);
+        const p = document.getElementById(v.panel);
+        if (k === sec) {
+          b.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white flex items-center gap-1.5";
+          p.classList.remove("hidden");
+        } else {
+          b.className = "px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5";
+          p.classList.add("hidden");
+        }
+      });
+      if (sec === "campaigns") renderCampaignBoard();
+      if (sec === "bench") renderBenchBoard();
+    }
+
+    function updateBenchCountBadge() {
+      const benchCount = state.campaignAssignments.filter(c => c.status === "BENCH" || !c.campaignName).length;
+      document.getElementById("bench-count-badge").textContent = benchCount;
+    }
+
+    function getDialerPillHtml(dialer) {
+      const d = (dialer || "").trim();
+      if (!d) return `<span class="text-slate-600 text-[11px]">—</span>`;
+      const lower = d.toLowerCase();
+      const cls = lower.includes("xencall") ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" :
+                  lower.includes("dialpad") ? "bg-purple-500/20 text-purple-300 border-purple-500/40" :
+                  lower.includes("salesfinity") ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" :
+                  "bg-sky-500/20 text-sky-300 border-sky-500/40";
+      return `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold border ${cls}">${escapeHtml(d)}</span>`;
+    }
+
+    function renderCampaignBoard() {
+      if (!isCurrentUserAdmin()) return;
+      const assigned = state.campaignAssignments.filter(c => c.status !== "BENCH" && c.campaignName);
+      document.getElementById("assigned-campaign-count").textContent = assigned.length;
+      updateBenchCountBadge();
+
+      const uniqueCampaigns = [...new Set(assigned.map(c => c.campaignName).filter(Boolean))].sort();
+      const filterSel = document.getElementById("campaign-filter-select");
+      const currentFilter = filterSel.value || "ALL";
+      filterSel.innerHTML = `<option value="ALL">All Campaigns (${assigned.length})</option>` +
+        uniqueCampaigns.map(cp => {
+          const cnt = assigned.filter(a => a.campaignName === cp).length;
+          return `<option value="${escapeHtml(cp)}" ${cp === currentFilter ? "selected" : ""}>${escapeHtml(cp)} (${cnt})</option>`;
+        }).join("");
+
+      document.getElementById("campaign-summary-pills").innerHTML = uniqueCampaigns.map(cp => {
+        const cnt = assigned.filter(a => a.campaignName === cp).length;
+        const activeCls = currentFilter === cp ? "bg-sky-600 text-white border-sky-400" : "bg-slate-800/80 text-slate-300 border-slate-700 hover:border-sky-500/50";
+        return `<button onclick="document.getElementById('campaign-filter-select').value='${escapeJsStr(cp)}'; renderCampaignBoard();" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${activeCls}">${escapeHtml(cp)}: <strong>${cnt}</strong></button>`;
+      }).join("");
+
+      const searchQ = (document.getElementById("campaign-search-input").value || "").toLowerCase();
+      const filtered = assigned.filter(item => {
+        if (currentFilter !== "ALL" && item.campaignName !== currentFilter) return false;
+        if (searchQ) {
+          const hay = `${item.agentName} ${item.aliasName} ${item.role} ${item.campaignName} ${item.dialer}`.toLowerCase();
+          if (!hay.includes(searchQ)) return false;
+        }
+        return true;
+      });
+
+      const tbody = document.getElementById("campaign-roster-tbody");
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No assigned agents match your filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const globalIdx = state.campaignAssignments.indexOf(item);
+        const escapedAgent = escapeJsStr(item.agentName);
+        return `
+          <tr class="hover:bg-slate-800/40">
+            <td class="py-2 px-2.5 whitespace-nowrap">
+              <div class="inline-flex items-center gap-1">
+                <button onclick="moveCampaignRow(${globalIdx}, -1)" title="Move Up" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]">▲</button>
+                <button onclick="moveCampaignRow(${globalIdx}, 1)" title="Move Down" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]">▼</button>
+              </div>
+            </td>
+            <td class="py-2 px-3 font-medium text-slate-100">${escapeHtml(item.agentName)}</td>
+            <td class="py-2 px-3">
+              <input type="text" value="${escapeHtml(item.aliasName)}" onchange="updateCampaignField('${escapedAgent}', 'aliasName', this.value)" placeholder="Alias..." class="w-32 bg-slate-800/80 border border-slate-700/80 rounded px-2 py-1 text-xs text-emerald-300 font-semibold focus:outline-none focus:border-sky-500" />
+            </td>
+            <td class="py-2 px-3">
+              <input type="text" list="role-suggestions" value="${escapeHtml(item.role)}" onchange="updateCampaignField('${escapedAgent}', 'role', this.value)" placeholder="Role..." class="w-40 bg-slate-800/80 border border-slate-700/80 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500" />
+            </td>
+            <td class="py-2 px-3">
+              <input type="text" list="campaign-suggestions" value="${escapeHtml(item.campaignName)}" onchange="updateCampaignField('${escapedAgent}', 'campaignName', this.value)" placeholder="Campaign..." class="w-40 bg-slate-800/80 border border-slate-700/80 rounded px-2 py-1 text-xs font-bold text-sky-300 focus:outline-none focus:border-sky-500" />
+            </td>
+            <td class="py-2 px-3">
+              <div class="flex items-center gap-1.5">
+                <input type="text" list="dialer-suggestions" value="${escapeHtml(item.dialer)}" onchange="updateCampaignField('${escapedAgent}', 'dialer', this.value)" placeholder="Dialer..." class="w-24 bg-slate-800/80 border border-slate-700/80 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500" />
+                ${getDialerPillHtml(item.dialer)}
+              </div>
+            </td>
+            <td class="py-2 px-3 text-right whitespace-nowrap space-x-1.5">
+              <button onclick="moveAgentToBench('${escapedAgent}')" title="Unassign to Bench" class="px-2 py-1 rounded bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 text-[11px] font-semibold">🪑 Bench</button>
+              <button onclick="removeFromCampaignSystem('${escapedAgent}')" title="Remove Row" class="text-rose-400 hover:text-rose-300 text-xs px-1">✕</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderBenchBoard() {
+      if (!isCurrentUserAdmin()) return;
+      const benchList = state.campaignAssignments.filter(c => c.status === "BENCH" || !c.campaignName);
+      document.getElementById("bench-roster-count").textContent = benchList.length;
+      updateBenchCountBadge();
+
+      const tbody = document.getElementById("bench-roster-tbody");
+      if (benchList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">All agents are currently assigned to active campaigns!</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = benchList.map(item => {
+        const escapedAgent = escapeJsStr(item.agentName);
+        const safeId = item.agentName.replace(/[^a-zA-Z0-9]/g, "_");
+        return `
+          <tr class="bg-sky-950/15 hover:bg-slate-800/40">
+            <td class="py-2.5 px-3 font-medium text-slate-100">${escapeHtml(item.agentName)}</td>
+            <td class="py-2.5 px-3">
+              <input type="text" id="bench-alias-${safeId}" value="${escapeHtml(item.aliasName)}" placeholder="Alias Name..." class="w-32 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200" />
+            </td>
+            <td class="py-2.5 px-3">
+              <input type="text" id="bench-role-${safeId}" list="role-suggestions" value="${escapeHtml(item.role)}" placeholder="Appointment Setter..." class="w-40 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200" />
+            </td>
+            <td class="py-2.5 px-3">
+              <input type="text" id="bench-camp-${safeId}" list="campaign-suggestions" placeholder="Enter Campaign..." class="w-40 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-sky-300 font-semibold" />
+            </td>
+            <td class="py-2.5 px-3">
+              <input type="text" id="bench-dialer-${safeId}" list="dialer-suggestions" value="${escapeHtml(item.dialer)}" placeholder="Xencall / Dialpad..." class="w-28 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200" />
+            </td>
+            <td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1.5">
+              <button onclick="quickAssignFromBench('${escapedAgent}', '${safeId}')" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold">✅ Assign</button>
+              <button onclick="removeFromCampaignSystem('${escapedAgent}')" class="text-rose-400 hover:text-rose-300 text-xs px-1">✕</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function updateCampaignField(agentName, field, value) {
+      if (!isCurrentUserAdmin()) return;
+      const item = state.campaignAssignments.find(c => c.agentName === agentName);
+      if (!item) return;
+      item[field] = value.trim();
+      if (field === "campaignName") {
+        item.status = item.campaignName ? "ASSIGNED" : "BENCH";
+      }
+      syncCampaignsToCloud();
+      renderCampaignBoard();
+      renderBenchBoard();
+      showToast(`✅ Updated ${field} for ${agentName.split(" ")[0]}`);
+    }
+
+    function moveCampaignRow(globalIndex, delta) {
+      if (!isCurrentUserAdmin()) return;
+      const targetIndex = globalIndex + delta;
+      if (targetIndex < 0 || targetIndex >= state.campaignAssignments.length) return;
+      const temp = state.campaignAssignments[globalIndex];
+      state.campaignAssignments[globalIndex] = state.campaignAssignments[targetIndex];
+      state.campaignAssignments[targetIndex] = temp;
+      syncCampaignsToCloud();
+      renderCampaignBoard();
+    }
+
+    function moveAgentToBench(agentName) {
+      if (!isCurrentUserAdmin()) return;
+      const item = state.campaignAssignments.find(c => c.agentName === agentName);
+      if (!item) return;
+      item.campaignName = "";
+      item.status = "BENCH";
+      syncCampaignsToCloud();
+      renderCampaignBoard();
+      renderBenchBoard();
+      showToast(`🪑 Moved ${agentName.split(" ")[0]} to Unassigned / Bench`);
+    }
+
+    function quickAssignFromBench(agentName, safeId) {
+      if (!isCurrentUserAdmin()) return;
+      const campVal = (document.getElementById(`bench-camp-${safeId}`)?.value || "").trim();
+      if (!campVal) return showToast("Enter a Campaign Name before assigning.");
+      const aliasVal = (document.getElementById(`bench-alias-${safeId}`)?.value || "").trim();
+      const roleVal = (document.getElementById(`bench-role-${safeId}`)?.value || "").trim();
+      const dialerVal = (document.getElementById(`bench-dialer-${safeId}`)?.value || "").trim();
+
+      const item = state.campaignAssignments.find(c => c.agentName === agentName);
+      if (!item) return;
+      item.aliasName = aliasVal;
+      item.role = roleVal;
+      item.campaignName = campVal;
+      item.dialer = dialerVal;
+      item.status = "ASSIGNED";
+
+      syncCampaignsToCloud();
+      renderCampaignBoard();
+      renderBenchBoard();
+      showToast(`🎯 Assigned ${agentName.split(" ")[0]} to ${campVal}!`);
+    }
+
+    function removeFromCampaignSystem(agentName) {
+      if (!isCurrentUserAdmin()) return;
+      if (!confirm(`Remove ${agentName} from the Campaign/Bench tracker?`)) return;
+      state.campaignAssignments = state.campaignAssignments.filter(c => c.agentName !== agentName);
+      syncCampaignsToCloud();
+      renderCampaignBoard();
+      renderBenchBoard();
+      showToast(`Removed ${agentName.split(" ")[0]} from campaign list`);
+    }
+
+    function openAddCampaignAgentModal(forBench = false) {
+      if (!isCurrentUserAdmin()) return;
+      const activeList = getActiveAgents().sort((a, b) => a.localeCompare(b));
+      document.getElementById("camp-modal-title").textContent = forBench ? "🪑 Add Agent to Unassigned Bench" : "🎯 Assign Agent to Campaign";
+      document.getElementById("camp-agent-select").innerHTML = activeList.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+      document.getElementById("camp-alias-input").value = "";
+      document.getElementById("camp-role-input").value = forBench ? "" : "Appointment Setter";
+      document.getElementById("camp-name-input").value = "";
+      document.getElementById("camp-dialer-input").value = "";
+
+      const uniqueCamps = [...new Set(state.campaignAssignments.map(c => c.campaignName).filter(Boolean))].sort();
+      document.getElementById("campaign-suggestions").innerHTML = uniqueCamps.map(c => `<option value="${escapeHtml(c)}">`).join("");
+
+      document.getElementById("modal-add-campaign-agent").classList.remove("hidden");
+      document.getElementById("modal-add-campaign-agent").classList.add("flex");
+    }
+
+    function saveCampaignAssignmentModal() {
+      if (!isCurrentUserAdmin()) return;
+      const agentName = document.getElementById("camp-agent-select").value;
+      const aliasName = document.getElementById("camp-alias-input").value.trim();
+      const role = document.getElementById("camp-role-input").value.trim();
+      const campaignName = document.getElementById("camp-name-input").value.trim();
+      const dialer = document.getElementById("camp-dialer-input").value.trim();
+      if (!agentName) return;
+
+      const existing = state.campaignAssignments.find(c => c.agentName === agentName);
+      if (existing) {
+        existing.aliasName = aliasName;
+        existing.role = role;
+        existing.campaignName = campaignName;
+        existing.dialer = dialer;
+        existing.status = campaignName ? "ASSIGNED" : "BENCH";
+      } else {
+        state.campaignAssignments.push({
+          sortOrder: state.campaignAssignments.length + 1,
+          agentName,
+          aliasName,
+          role,
+          campaignName,
+          dialer,
+          status: campaignName ? "ASSIGNED" : "BENCH"
+        });
+      }
+
+      syncCampaignsToCloud();
+      closeModal("modal-add-campaign-agent");
+      renderCampaignBoard();
+      renderBenchBoard();
+      showToast(campaignName ? `🎯 Assigned ${agentName.split(" ")[0]} to ${campaignName}` : `🪑 Added ${agentName.split(" ")[0]} to Bench`);
+    }
+
+    function exportCampaignCSV() {
+      const headers = ["Order", "Agent Full Name", "Caller / Alias Name", "Role", "Campaign Name", "Dialer", "Status"];
+      const lines = [headers.join(",")];
+      state.campaignAssignments.forEach((c, idx) => {
+        lines.push([idx + 1, `"${c.agentName}"`, `"${c.aliasName}"`, `"${c.role}"`, `"${c.campaignName}"`, `"${c.dialer}"`, c.status].join(","));
+      });
+      downloadCSV(lines.join("\n"), `ACQ_Campaign_Assignments_${getEgyptDateStr()}.csv`);
+    }
+
+    // =========================================================
+    // 6. LIVE LEADERBOARD (CALLS, LEADS & CLEAN STREAKS)
+    // =========================================================
+    function setLeaderboardRange(range) {
+      state.lbRange = range;
+      ["today", "week", "month", "all"].forEach(r => {
+        const btn = document.getElementById("lb-range-" + r);
+        btn.className = r === range
+          ? "px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white"
+          : "px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white";
+      });
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const now = Date.now();
+      const today = getEgyptDateStr(now);
+      let cutoff = "";
+      if (state.lbRange === "today") cutoff = today;
+      else if (state.lbRange === "week") cutoff = getDaysAgoStr(6);
+      else if (state.lbRange === "month") cutoff = getMonthStartStr();
+
+      const activeRoster = getActiveAgents();
+      const statsMap = {};
+      activeRoster.forEach(name => {
+        const camp = getAgentCampaignInfo(name);
+        statsMap[name] = {
+          agentName: name,
+          campaign: camp && camp.campaignName ? camp.campaignName : "Unassigned",
+          alias: camp && camp.aliasName ? camp.aliasName : "",
+          calls: 0,
+          leads: 0,
+          netHours: 0,
+          streak: getAgentCleanStreak(name)
+        };
+      });
+
+      state.logs.forEach(l => {
+        if (!statsMap[l.agentName]) return;
+        const dStr = sanitizeDateField(l.date);
+        if (cutoff && dStr < cutoff) return;
+        statsMap[l.agentName].calls += Number(l.calls || 0);
+        statsMap[l.agentName].leads += Number(l.leads || 0);
+        statsMap[l.agentName].netHours += (getShiftLiveWorkMs(l, now) / 3600000);
+      });
+
+      const sortBy = document.getElementById("lb-sort-by").value;
+      const rows = Object.values(statsMap).map(r => ({
+        ...r,
+        netHours: Math.round(r.netHours * 100) / 100,
+        cph: r.netHours > 0 ? Math.round((r.calls / r.netHours) * 10) / 10 : 0
+      }));
+
+      rows.sort((a, b) => {
+        if (sortBy === "leads") return b.leads - a.leads || b.calls - a.calls;
+        if (sortBy === "cph") return b.cph - a.cph || b.calls - a.calls;
+        if (sortBy === "streak") return b.streak - a.streak || b.calls - a.calls;
+        return b.calls - a.calls || b.leads - a.leads;
+      });
+
+      const podiumColors = [
+        "border-amber-400/60 bg-gradient-to-br from-amber-500/15 to-slate-900",
+        "border-slate-400/50 bg-gradient-to-br from-slate-400/10 to-slate-900",
+        "border-orange-500/50 bg-gradient-to-br from-orange-500/10 to-slate-900"
+      ];
+      const medals = ["🥇 #1", "🥈 #2", "🥉 #3"];
+
+      document.getElementById("leaderboard-podium").innerHTML = rows.slice(0, 3).map((r, idx) => `
+        <div class="border ${podiumColors[idx]} rounded-2xl p-4 space-y-2 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-slate-100">${medals[idx]}</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">🔥 ${r.streak} Clean Streak</span>
+          </div>
+          <div class="font-bold text-base text-white truncate">${escapeHtml(r.agentName)}</div>
+          <div class="text-[11px] text-sky-300">${escapeHtml(r.campaign)}${r.alias ? ` • "${escapeHtml(r.alias)}"` : ""}</div>
+          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/80 text-center">
+            <div><div class="text-[10px] text-slate-400">Calls</div><div class="mono text-sm font-bold text-sky-400">${r.calls.toLocaleString()}</div></div>
+            <div><div class="text-[10px] text-slate-400">Leads</div><div class="mono text-sm font-bold text-emerald-400">${r.leads}</div></div>
+            <div><div class="text-[10px] text-slate-400">Calls/Hr</div><div class="mono text-sm font-bold text-amber-300">${r.cph}</div></div>
+          </div>
+        </div>
+      `).join("");
+
+      document.getElementById("leaderboard-tbody").innerHTML = rows.map((r, idx) => {
+        const rankLabel = idx === 0 && r.calls > 0 ? "🥇 1" : idx === 1 && r.calls > 0 ? "🥈 2" : idx === 2 && r.calls > 0 ? "🥉 3" : `#${idx + 1}`;
+        return `
+          <tr class="hover:bg-slate-800/40">
+            <td class="py-2.5 px-3 mono font-bold text-slate-300">${rankLabel}</td>
+            <td class="py-2.5 px-3 font-medium text-slate-100">${escapeHtml(r.agentName)}${r.alias ? ` <span class="text-slate-400 text-[11px]">(${escapeHtml(r.alias)})</span>` : ""}</td>
+            <td class="py-2.5 px-3 text-sky-300 font-medium">${escapeHtml(r.campaign)}</td>
+            <td class="py-2.5 px-3 mono font-bold text-sky-400">${r.calls.toLocaleString()}</td>
+            <td class="py-2.5 px-3 mono font-bold text-emerald-400">${r.leads}</td>
+            <td class="py-2.5 px-3 mono text-slate-200">${r.cph}</td>
+            <td class="py-2.5 px-3 mono text-slate-300">${r.netHours.toFixed(2)}h</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${r.streak > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-500'}">🔥 ${r.streak}</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // =========================================================
+    // 7. ADMIN MANUAL DAILY ROSTER STATUS OVERRIDES
     // =========================================================
     function setAgentDailyOverride(dateStr, agentName, statusVal) {
       if (!isCurrentUserAdmin()) return;
       state.dailyOverrides[`${dateStr}|${agentName}`] = statusVal;
-
-      syncPayloadToCloud({
-        recordType: "OVERRIDE",
-        date: dateStr,
-        agentName: agentName,
-        assignedStatus: statusVal,
-        updatedAt: new Date().toISOString()
-      });
-
+      syncPayloadToCloud({ recordType: "OVERRIDE", date: dateStr, agentName, assignedStatus: statusVal, updatedAt: new Date().toISOString() });
       renderAll();
       showToast(`✅ ${agentName.split(" ").slice(0, 2).join(" ")} set to "${statusVal}" for ${dateStr}`);
     }
@@ -1371,26 +2100,16 @@
     function setAllAgentsOverride(statusVal) {
       if (!isCurrentUserAdmin()) return;
       const dateStr = document.getElementById("override-date").value || getEgyptDateStr();
-      state.agents.forEach(agentName => {
-        state.dailyOverrides[`${dateStr}|${agentName}`] = statusVal;
-      });
-
-      syncPayloadToCloud({
-        recordType: "BULK_OVERRIDE",
-        date: dateStr,
-        agents: state.agents,
-        assignedStatus: statusVal,
-        updatedAt: new Date().toISOString()
-      });
-
+      const activeList = getActiveAgents();
+      activeList.forEach(agentName => { state.dailyOverrides[`${dateStr}|${agentName}`] = statusVal; });
+      syncPayloadToCloud({ recordType: "BULK_OVERRIDE", date: dateStr, agents: activeList, assignedStatus: statusVal, updatedAt: new Date().toISOString() });
       renderAll();
-      showToast(`✅ Marked all ${state.agents.length} agents as "${statusVal}" for ${dateStr}`);
+      showToast(`✅ Marked all ${activeList.length} active agents as "${statusVal}" for ${dateStr}`);
     }
 
     function renderDailyOverrideBoard() {
       const dateStr = document.getElementById("override-date").value || getEgyptDateStr();
-      const sorted = [...state.agents].sort((a, b) => a.localeCompare(b));
-
+      const sorted = getActiveAgents().sort((a, b) => a.localeCompare(b));
       const statusBorder = {
         "Working": "border-slate-800 bg-slate-800/40",
         "Scheduled Off": "border-slate-600/60 bg-slate-800/80",
@@ -1400,18 +2119,13 @@
         "Sick Leave": "border-rose-500/40 bg-rose-950/25",
         "Absent / No-Show": "border-red-500/60 bg-red-950/35"
       };
-
-      const grid = document.getElementById("daily-override-grid");
-      grid.innerHTML = sorted.map(agentName => {
+      document.getElementById("daily-override-grid").innerHTML = sorted.map(agentName => {
         const currentVal = getEffectiveDailyAssignment(dateStr, agentName);
         const escapedJs = escapeJsStr(agentName);
-        const boxClass = statusBorder[currentVal] || "border-slate-800 bg-slate-800/40";
-
         return `
-          <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border ${boxClass}">
+          <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border ${statusBorder[currentVal] || "border-slate-800 bg-slate-800/40"}">
             <span class="text-xs font-medium text-slate-200 truncate flex-1" title="${escapeHtml(agentName)}">${escapeHtml(agentName)}</span>
-            <select onchange="setAgentDailyOverride('${dateStr}', '${escapedJs}', this.value)"
-              class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-100 focus:outline-none focus:border-emerald-500">
+            <select onchange="setAgentDailyOverride('${dateStr}', '${escapedJs}', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-100">
               ${OVERRIDE_OPTIONS.map(opt => `<option value="${opt}" ${opt === currentVal ? "selected" : ""}>${opt}</option>`).join("")}
             </select>
           </div>
@@ -1420,15 +2134,13 @@
     }
 
     // =========================================================
-    // 6. GLOBAL TEAM LEAVE CALENDAR, US HOLIDAYS & REASSIGNMENT
+    // 8. GLOBAL TEAM LEAVE CALENDAR, COVERAGE GUARDRAIL & BULK APPROVE
     // =========================================================
     function openLeaveRequestModal(prefillDate = null) {
       const boundAgent = getLockedAgentNameForCurrentUser();
-      if (!boundAgent) {
-        return showToast("🔐 Please sign in with Google first to request days off.");
-      }
+      if (!boundAgent) return showToast("🔐 Please sign in with Google first to request days off.");
 
-      const sorted = [...state.agents].sort((a, b) => a.localeCompare(b));
+      const sorted = getActiveAgents().sort((a, b) => a.localeCompare(b));
       const isAdmin = isCurrentUserAdmin();
       const defaultAgent = (boundAgent !== ADMIN_PROFILE_NAME) ? boundAgent : (sorted[0] || "");
 
@@ -1468,25 +2180,39 @@
 
     function renderModalSelectedDates() {
       const box = document.getElementById("selected-leave-dates-list");
+      const warnBox = document.getElementById("modal-coverage-warning");
       if (state.modalSelectedDates.length === 0) {
         box.innerHTML = `<span class="text-[11px] text-slate-500">No days selected yet — pick a date above and click "+ Add Day".</span>`;
+        warnBox.classList.add("hidden");
         return;
       }
-      box.innerHTML = state.modalSelectedDates.map(d => `
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/20 border border-sky-500/40 text-sky-200 mono text-xs">
-          ${escapeHtml(d)}
-          <button type="button" onclick="removeSelectedLeaveDate('${escapeJsStr(d)}')" class="text-sky-300 hover:text-rose-400 font-bold">✕</button>
-        </span>
-      `).join("");
+
+      const lowDates = [];
+      box.innerHTML = state.modalSelectedDates.map(d => {
+        const cov = getDateWorkingCoverage(d);
+        if (cov.working - 1 < state.settings.minFloorCoverage) {
+          lowDates.push(`${d} (${cov.working - 1}/${cov.total} working)`);
+        }
+        return `
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/20 border border-sky-500/40 text-sky-200 mono text-xs">
+            ${escapeHtml(d)}
+            <button type="button" onclick="removeSelectedLeaveDate('${escapeJsStr(d)}')" class="text-sky-300 hover:text-rose-400 font-bold">✕</button>
+          </span>
+        `;
+      }).join("");
+
+      if (lowDates.length > 0) {
+        warnBox.textContent = `⚠️ Floor Coverage Alert: Approving these dates will drop working headcount below ${state.settings.minFloorCoverage}: ${lowDates.join(", ")}.`;
+        warnBox.classList.remove("hidden");
+      } else {
+        warnBox.classList.add("hidden");
+      }
     }
 
     function renderModalLeaveQuotaPreview() {
       const agentName = document.getElementById("leave-agent-select").value;
       const box = document.getElementById("modal-leave-quota-preview");
-      if (!agentName) {
-        box.classList.add("hidden");
-        return;
-      }
+      if (!agentName) { box.classList.add("hidden"); return; }
       const b = getAgentLeaveBalances(agentName);
       box.classList.remove("hidden");
       box.innerHTML = `
@@ -1504,13 +2230,8 @@
       const notes = document.getElementById("leave-notes").value.trim();
       const errEl = document.getElementById("leave-error");
 
-      if (!agentName) {
-        errEl.textContent = "Please select an agent name.";
-        errEl.classList.remove("hidden");
-        return;
-      }
-      if (state.modalSelectedDates.length === 0) {
-        errEl.textContent = "Please add at least one individual date.";
+      if (!agentName || state.modalSelectedDates.length === 0) {
+        errEl.textContent = "Please select an agent and at least one individual date.";
         errEl.classList.remove("hidden");
         return;
       }
@@ -1520,17 +2241,17 @@
       const requestedCount = state.modalSelectedDates.length;
 
       if (leaveType === "Annual" && requestedCount > balances.annual.left) {
-        errEl.textContent = `Insufficient Annual Leave balance (${balances.annual.left} day(s) left, requested ${requestedCount}). Choose UPL or fewer days.`;
+        errEl.textContent = `Insufficient Annual Leave balance (${balances.annual.left} day(s) left).`;
         errEl.classList.remove("hidden");
         return;
       }
       if (leaveType === "Casual" && requestedCount > balances.casual.left) {
-        errEl.textContent = `Insufficient Casual Leave balance (${balances.casual.left} day(s) left, requested ${requestedCount}). Choose UPL or fewer days.`;
+        errEl.textContent = `Insufficient Casual Leave balance (${balances.casual.left} day(s) left).`;
         errEl.classList.remove("hidden");
         return;
       }
       if (leaveType === "Sick Leave" && requestedCount > balances.sick.left) {
-        errEl.textContent = `Insufficient Paid Sick Leave balance (${balances.sick.left} day(s) left, requested ${requestedCount}). Choose UPL or fewer days.`;
+        errEl.textContent = `Insufficient Paid Sick Leave balance (${balances.sick.left} day(s) left).`;
         errEl.classList.remove("hidden");
         return;
       }
@@ -1539,7 +2260,6 @@
       state.modalSelectedDates.forEach((dateStr, idx) => {
         const existing = state.leaves.find(lv => lv.agentName === agentName && sanitizeDateField(lv.date || lv.startDate) === dateStr && lv.status !== "DENIED");
         if (existing) return;
-
         const newLeave = {
           id: `lv_${Date.now()}_${idx}`,
           agentName,
@@ -1559,7 +2279,7 @@
       showToast(`📅 Submitted ${requestedCount} individual ${leaveType} day(s) to Cloud`);
     }
 
-    function updateLeaveStatus(id, newStatus) {
+    function updateLeaveStatus(id, newStatus, silent = false) {
       if (!isCurrentUserAdmin()) return;
       const lv = state.leaves.find(item => item.id === id);
       if (!lv) return;
@@ -1568,31 +2288,41 @@
 
       if (newStatus === "APPROVED") {
         state.dailyOverrides[`${dStr}|${lv.agentName}`] = lv.leaveType;
-        syncPayloadToCloud({
-          recordType: "OVERRIDE",
-          date: dStr,
-          agentName: lv.agentName,
-          assignedStatus: lv.leaveType,
-          updatedAt: new Date().toISOString()
-        });
+        syncPayloadToCloud({ recordType: "OVERRIDE", date: dStr, agentName: lv.agentName, assignedStatus: lv.leaveType, updatedAt: new Date().toISOString() });
       } else if (newStatus === "DENIED") {
         if (state.dailyOverrides[`${dStr}|${lv.agentName}`] === lv.leaveType) {
           state.dailyOverrides[`${dStr}|${lv.agentName}`] = "Working";
-          syncPayloadToCloud({
-            recordType: "OVERRIDE",
-            date: dStr,
-            agentName: lv.agentName,
-            assignedStatus: "Working",
-            updatedAt: new Date().toISOString()
-          });
+          syncPayloadToCloud({ recordType: "OVERRIDE", date: dStr, agentName: lv.agentName, assignedStatus: "Working", updatedAt: new Date().toISOString() });
         }
       }
 
       syncPayloadToCloud({ recordType: "LEAVE", ...lv, date: dStr });
+      if (!silent) {
+        renderAll();
+        showToast(newStatus === "APPROVED" ? `✅ Approved ${lv.agentName} (${dStr})` : `❌ Rejected ${lv.agentName} (${dStr})`);
+      }
+    }
+
+    function bulkApproveNonConflictingLeaves() {
+      if (!isCurrentUserAdmin()) return;
+      const pending = state.leaves.filter(lv => lv.status === "PENDING");
+      if (pending.length === 0) return showToast("No pending leaves to approve.");
+
+      let approvedCount = 0;
+      let skippedCount = 0;
+      pending.forEach(lv => {
+        const dStr = sanitizeDateField(lv.date || lv.startDate);
+        const cov = getDateWorkingCoverage(dStr);
+        if (cov.working - 1 >= state.settings.minFloorCoverage) {
+          updateLeaveStatus(lv.id, "APPROVED", true);
+          approvedCount++;
+        } else {
+          skippedCount++;
+        }
+      });
+
       renderAll();
-      showToast(newStatus === "APPROVED"
-        ? `✅ Approved ${lv.agentName} (${dStr}) — Synced to Global Calendar`
-        : `❌ Rejected ${lv.agentName} (${dStr}) — Day refunded & removed`);
+      showToast(`✅ Bulk Approved ${approvedCount} safe leave(s)${skippedCount > 0 ? ` • Skipped ${skippedCount} low-coverage date(s)` : ""}`);
     }
 
     function openReassignLeaveModal(id) {
@@ -1615,62 +2345,41 @@
       if (!lv || !newDate) return;
 
       const oldDate = sanitizeDateField(lv.date || lv.startDate);
-      if (oldDate === newDate) {
-        closeModal("modal-reassign-leave");
-        return;
-      }
+      if (oldDate === newDate) { closeModal("modal-reassign-leave"); return; }
 
       if (state.dailyOverrides[`${oldDate}|${lv.agentName}`] === lv.leaveType) {
         state.dailyOverrides[`${oldDate}|${lv.agentName}`] = "Working";
-        syncPayloadToCloud({
-          recordType: "OVERRIDE",
-          date: oldDate,
-          agentName: lv.agentName,
-          assignedStatus: "Working",
-          updatedAt: new Date().toISOString()
-        });
+        syncPayloadToCloud({ recordType: "OVERRIDE", date: oldDate, agentName: lv.agentName, assignedStatus: "Working", updatedAt: new Date().toISOString() });
       }
 
       lv.date = newDate;
       if (lv.status === "APPROVED") {
         state.dailyOverrides[`${newDate}|${lv.agentName}`] = lv.leaveType;
-        syncPayloadToCloud({
-          recordType: "OVERRIDE",
-          date: newDate,
-          agentName: lv.agentName,
-          assignedStatus: lv.leaveType,
-          updatedAt: new Date().toISOString()
-        });
+        syncPayloadToCloud({ recordType: "OVERRIDE", date: newDate, agentName: lv.agentName, assignedStatus: lv.leaveType, updatedAt: new Date().toISOString() });
       }
 
       syncPayloadToCloud({ recordType: "LEAVE", ...lv, date: newDate });
       closeModal("modal-reassign-leave");
       renderAll();
-      showToast(`🔄 Reassigned ${lv.agentName}'s ${lv.leaveType} from ${oldDate} to ${newDate}`);
+      showToast(`🔄 Reassigned ${lv.agentName}'s ${lv.leaveType} to ${newDate}`);
     }
 
     function deleteLeaveRequest(id) {
       if (!isCurrentUserAdmin()) return;
       const lv = state.leaves.find(item => item.id === id);
       if (!lv) return;
-      if (!confirm(`Cancel/delete ${lv.agentName}'s leave on ${lv.date} from Google Sheets and refund the day?`)) return;
+      if (!confirm(`Cancel/delete ${lv.agentName}'s leave on ${lv.date} and refund the day?`)) return;
 
       const dStr = sanitizeDateField(lv.date || lv.startDate);
       if (state.dailyOverrides[`${dStr}|${lv.agentName}`] === lv.leaveType) {
         state.dailyOverrides[`${dStr}|${lv.agentName}`] = "Working";
-        syncPayloadToCloud({
-          recordType: "OVERRIDE",
-          date: dStr,
-          agentName: lv.agentName,
-          assignedStatus: "Working",
-          updatedAt: new Date().toISOString()
-        });
+        syncPayloadToCloud({ recordType: "OVERRIDE", date: dStr, agentName: lv.agentName, assignedStatus: "Working", updatedAt: new Date().toISOString() });
       }
 
       state.leaves = state.leaves.filter(item => item.id !== id);
       syncPayloadToCloud({ recordType: "DELETE_LEAVE", id });
       renderAll();
-      showToast("🗑️ Leave deleted from Google Sheet & quota refunded.");
+      showToast("🗑️ Leave deleted & quota refunded.");
     }
 
     function updatePendingLeaveBadge() {
@@ -1686,13 +2395,8 @@
 
     function changeCalendarMonth(delta) {
       state.calMonth += delta;
-      if (state.calMonth > 11) {
-        state.calMonth = 0;
-        state.calYear += 1;
-      } else if (state.calMonth < 0) {
-        state.calMonth = 11;
-        state.calYear -= 1;
-      }
+      if (state.calMonth > 11) { state.calMonth = 0; state.calYear += 1; }
+      else if (state.calMonth < 0) { state.calMonth = 11; state.calYear -= 1; }
       renderCalendarGrid();
     }
 
@@ -1707,20 +2411,25 @@
       const isAdmin = isCurrentUserAdmin();
       const balSel = document.getElementById("cal-balance-agent");
       const leaveFilterSel = document.getElementById("leave-agent-filter");
+      const bulkBtn = document.getElementById("btn-bulk-approve-leaves");
+      const pendingCount = state.leaves.filter(l => l.status === "PENDING").length;
 
       if (isAdmin) {
         balSel.classList.remove("hidden");
         leaveFilterSel.classList.remove("hidden");
+        if (pendingCount > 0) bulkBtn.classList.remove("hidden");
+        else bulkBtn.classList.add("hidden");
         document.getElementById("cal-balance-owner-label").textContent = "Agent";
         document.getElementById("leave-queue-title").textContent = "📝 All Team Day-Off Requests (Admin Approval Queue)";
         document.getElementById("leave-queue-subtitle").textContent = "Approve, Reject (auto-refunds day), or Reassign any day off to a new date.";
-        if (!balSel.value && state.agents.length > 0) balSel.value = state.agents[0];
+        if (!balSel.value && getActiveAgents().length > 0) balSel.value = getActiveAgents()[0];
       } else {
         balSel.classList.add("hidden");
         leaveFilterSel.classList.add("hidden");
+        bulkBtn.classList.add("hidden");
         document.getElementById("cal-balance-owner-label").textContent = "My";
         document.getElementById("leave-queue-title").textContent = "📝 My Day-Off Requests";
-        document.getElementById("leave-queue-subtitle").textContent = "Your personal leave requests and approval status (approved days appear globally on the calendar above).";
+        document.getElementById("leave-queue-subtitle").textContent = "Your personal leave requests and approval status.";
       }
 
       renderCalendarBalanceChecker();
@@ -1732,12 +2441,11 @@
       const isAdmin = isCurrentUserAdmin();
       const boundAgent = getLockedAgentNameForCurrentUser();
       const targetAgent = isAdmin
-        ? (document.getElementById("cal-balance-agent").value || state.agents[0])
+        ? (document.getElementById("cal-balance-agent").value || getActiveAgents()[0])
         : (boundAgent && boundAgent !== ADMIN_PROFILE_NAME ? boundAgent : "");
 
       const box = document.getElementById("cal-balance-cards");
       document.getElementById("cal-balance-year").textContent = getEgyptDateStr().slice(0, 4);
-
       if (!targetAgent) {
         box.innerHTML = `<div class="col-span-full text-xs text-slate-500 py-3">Sign in with Google to view your personal leave balances.</div>`;
         return;
@@ -1768,13 +2476,15 @@
 
       let cellsHtml = "";
       for (let empty = 0; empty < firstDay; empty++) {
-        cellsHtml += `<div class="min-h-[105px] bg-slate-950/40 border border-slate-800/50 rounded-xl p-1.5"></div>`;
+        cellsHtml += `<div class="min-h-[108px] bg-slate-950/40 border border-slate-800/50 rounded-xl p-1.5"></div>`;
       }
 
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
         const isToday = dateStr === todayStr;
         const holidayName = usHolidays[dateStr];
+        const cov = getDateWorkingCoverage(dateStr);
+        const isLowCov = cov.working < state.settings.minFloorCoverage;
 
         const dayLeaves = state.leaves.filter(lv => {
           if (sanitizeDateField(lv.date || lv.startDate) !== dateStr) return false;
@@ -1784,9 +2494,8 @@
         });
 
         const alreadyListed = new Set(dayLeaves.map(lv => lv.agentName));
-
         const manualOffItems = [];
-        state.agents.forEach(agentName => {
+        getActiveAgents().forEach(agentName => {
           if (alreadyListed.has(agentName)) return;
           const ov = state.dailyOverrides[`${dateStr}|${agentName}`];
           if (ov && ov !== "Working" && ov !== "Absent / No-Show") {
@@ -1795,32 +2504,25 @@
         });
 
         const combined = [...dayLeaves, ...manualOffItems];
-
-        const holidayHtml = holidayName
-          ? `<div title="${escapeHtml(holidayName)}" class="px-1.5 py-0.5 rounded text-[10px] font-bold truncate bg-indigo-500/25 text-indigo-200 border border-indigo-400/50">${escapeHtml(holidayName)}</div>`
-          : "";
-
+        const holidayHtml = holidayName ? `<div title="${escapeHtml(holidayName)}" class="px-1.5 py-0.5 rounded text-[10px] font-bold truncate bg-indigo-500/25 text-indigo-200 border border-indigo-400/50">${escapeHtml(holidayName)}</div>` : "";
         const pills = combined.map(lv => {
           const shortName = lv.agentName.split(" ").slice(0, 2).join(" ");
           const style = typeColors[lv.leaveType] || "bg-slate-800 text-slate-200 border-slate-600";
           const pendingStyle = lv.status === "PENDING" ? "border-dashed opacity-75" : "border-solid font-semibold";
-          return `<div title="${escapeHtml(lv.agentName)} — ${escapeHtml(lv.leaveType)} (${escapeHtml(lv.status)})" class="px-1.5 py-0.5 rounded text-[10px] truncate border ${style} ${pendingStyle}">
-            ${lv.status === "PENDING" ? "⏳ " : ""}${escapeHtml(shortName)} (${escapeHtml(lv.leaveType)})
-          </div>`;
+          return `<div title="${escapeHtml(lv.agentName)} — ${escapeHtml(lv.leaveType)} (${escapeHtml(lv.status)})" class="px-1.5 py-0.5 rounded text-[10px] truncate border ${style} ${pendingStyle}">${lv.status === "PENDING" ? "⏳ " : ""}${escapeHtml(shortName)} (${escapeHtml(lv.leaveType)})</div>`;
         }).join("");
 
         cellsHtml += `
-          <div onclick="openLeaveRequestModal('${dateStr}')" title="Click to request ${dateStr} off"
-            class="min-h-[105px] cursor-pointer hover:border-sky-500/60 transition bg-slate-800/40 border ${isToday ? 'border-emerald-500 ring-1 ring-emerald-500/40' : 'border-slate-800'} rounded-xl p-1.5 flex flex-col gap-1">
+          <div onclick="openLeaveRequestModal('${dateStr}')" title="Click to request ${dateStr} off • ${cov.working}/${cov.total} working"
+            class="min-h-[108px] cursor-pointer hover:border-sky-500/60 transition bg-slate-800/40 border ${isToday ? 'border-emerald-500 ring-1 ring-emerald-500/40' : 'border-slate-800'} rounded-xl p-1.5 flex flex-col gap-1">
             <div class="flex items-center justify-between">
               <span class="mono text-[11px] font-bold ${isToday ? 'text-emerald-400' : 'text-slate-400'}">${day}</span>
-              ${combined.length > 0 ? `<span class="text-[9px] text-slate-400">${combined.length} off</span>` : `<span class="text-[9px] text-slate-600">+</span>`}
+              <span class="mono text-[9px] px-1 rounded ${isLowCov ? 'bg-rose-500/25 text-rose-300 font-bold' : 'text-slate-500'}">${cov.working}/${cov.total}</span>
             </div>
             <div class="space-y-1 overflow-y-auto max-h-24">${holidayHtml}${pills}</div>
           </div>
         `;
       }
-
       document.getElementById("calendar-grid").innerHTML = cellsHtml;
     }
 
@@ -1839,7 +2541,7 @@
 
       const tbody = document.getElementById("leave-tbody");
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No day-off requests found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500">No day-off requests found.</td></tr>`;
         return;
       }
 
@@ -1849,7 +2551,6 @@
         "UPL": "bg-purple-500/15 text-purple-300 border-purple-500/30",
         "Sick Leave": "bg-rose-500/15 text-rose-300 border-rose-500/30"
       };
-
       const statusBadge = {
         "PENDING": `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">⏳ Pending</span>`,
         "APPROVED": `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">✅ Approved</span>`,
@@ -1858,6 +2559,12 @@
 
       tbody.innerHTML = filtered.map(lv => {
         const dStr = sanitizeDateField(lv.date || lv.startDate);
+        const cov = getDateWorkingCoverage(dStr);
+        const afterApprovalWorking = lv.status === "APPROVED" ? cov.working : cov.working - 1;
+        const covBadge = afterApprovalWorking < state.settings.minFloorCoverage
+          ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">⚠️ ${afterApprovalWorking}/${cov.total} Working</span>`
+          : `<span class="text-[11px] text-emerald-400 mono">${afterApprovalWorking}/${cov.total} Working</span>`;
+
         const b = getAgentLeaveBalances(lv.agentName, dStr.slice(0, 4));
         const quotaText =
           lv.leaveType === "Annual" ? `${b.annual.left}/15 Annual left` :
@@ -1871,7 +2578,7 @@
               ${lv.status !== "APPROVED" ? `<button onclick="updateLeaveStatus('${safeId}', 'APPROVED')" class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold">Approve</button>` : ""}
               ${lv.status !== "DENIED" ? `<button onclick="updateLeaveStatus('${safeId}', 'DENIED')" class="px-2 py-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white text-[11px] font-bold">Reject</button>` : ""}
               <button onclick="openReassignLeaveModal('${safeId}')" class="px-2 py-1 rounded bg-sky-600/25 hover:bg-sky-600/40 text-sky-300 text-[11px] font-semibold">🔄 Reassign</button>
-              <button onclick="deleteLeaveRequest('${safeId}')" class="text-slate-400 hover:text-rose-400 text-xs px-1" title="Delete from Cloud & Refund">🗑️</button>
+              <button onclick="deleteLeaveRequest('${safeId}')" class="text-slate-400 hover:text-rose-400 text-xs px-1" title="Delete & Refund">🗑️</button>
             </div>`
           : `<span class="text-[11px] text-slate-500">Submitted</span>`;
 
@@ -1880,6 +2587,7 @@
             <td class="py-2.5 px-3 font-medium text-slate-100">${escapeHtml(lv.agentName)}</td>
             <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${typeBadge[lv.leaveType] || ''}">${escapeHtml(lv.leaveType)}</span></td>
             <td class="py-2.5 px-3 mono font-semibold text-slate-200 whitespace-nowrap">${escapeHtml(dStr)}</td>
+            <td class="py-2.5 px-3 whitespace-nowrap">${covBadge}</td>
             <td class="py-2.5 px-3 mono text-[11px] text-slate-300 whitespace-nowrap">${quotaText}</td>
             <td class="py-2.5 px-3 text-slate-400 max-w-xs truncate" title="${escapeHtml(lv.notes || '')}">${escapeHtml(lv.notes) || "—"}</td>
             <td class="py-2.5 px-3">${statusBadge[lv.status] || escapeHtml(lv.status)}</td>
@@ -1890,13 +2598,11 @@
     }
 
     // =========================================================
-    // 7. NIGHT-SHIFT SAFE CUMULATIVE SHIFT, BREAK & EOD ACTIONS
+    // 9. CUMULATIVE SHIFT, BREAK, SELF-FIX & EOD AUTO-SUMMARY
     // =========================================================
     function getShiftLiveWorkMs(shift, now = Date.now()) {
       if (!shift) return 0;
-      const baseMs = shift.accumulatedWorkMs !== undefined
-        ? shift.accumulatedWorkMs
-        : Math.round((Number(shift.netHours) || 0) * 3600000);
+      const baseMs = shift.accumulatedWorkMs !== undefined ? shift.accumulatedWorkMs : Math.round((Number(shift.netHours) || 0) * 3600000);
       if (shift.status === "ON_SHIFT" && shift.sessionStartTs) {
         return baseMs + Math.max(0, now - shift.sessionStartTs);
       }
@@ -1905,17 +2611,12 @@
 
     function isShiftForgotten(shift, now = Date.now()) {
       if (!shift || (shift.status !== "ON_SHIFT" && shift.status !== "ON_BREAK")) return false;
-      const totalElapsedHrs = getShiftLiveWorkMs(shift, now) / 3600000;
-      return totalElapsedHrs >= FORGOTTEN_SHIFT_HOURS;
+      return (getShiftLiveWorkMs(shift, now) / 3600000) >= FORGOTTEN_SHIFT_HOURS;
     }
 
     function getActiveShift(agentName) {
       const now = Date.now();
-      return state.logs.find(l =>
-        l.agentName === agentName &&
-        (l.status === "ON_SHIFT" || l.status === "ON_BREAK") &&
-        !isShiftForgotten(l, now)
-      );
+      return state.logs.find(l => l.agentName === agentName && (l.status === "ON_SHIFT" || l.status === "ON_BREAK") && !isShiftForgotten(l, now));
     }
 
     function getCurrentOrTodayShift(agentName) {
@@ -1936,19 +2637,13 @@
       const existingToday = state.logs.find(l => l.agentName === name && sanitizeDateField(l.date) === today && !isShiftForgotten(l, now));
 
       if (existingToday) {
-        const prevWorkMs = existingToday.accumulatedWorkMs !== undefined
-          ? existingToday.accumulatedWorkMs
-          : Math.round((existingToday.netHours || 0) * 3600000);
-
+        const prevWorkMs = existingToday.accumulatedWorkMs !== undefined ? existingToday.accumulatedWorkMs : Math.round((existingToday.netHours || 0) * 3600000);
         existingToday.status = "ON_SHIFT";
         existingToday.sessionStartTs = now;
         existingToday.breakStartTs = null;
         existingToday.accumulatedWorkMs = prevWorkMs;
         existingToday.clockOut = "";
-        existingToday.flags = [
-          ...existingToday.flags.filter(f => !["FULL_SHIFT", "SHORT_SHIFT", "ADMIN_FORCED_OUT"].includes(f)),
-          "ACTIVE"
-        ].filter((v, i, a) => a.indexOf(v) === i);
+        existingToday.flags = [...existingToday.flags.filter(f => !["FULL_SHIFT", "SHORT_SHIFT", "ADMIN_FORCED_OUT"].includes(f)), "ACTIVE"].filter((v, i, a) => a.indexOf(v) === i);
         existingToday.breakLogs = existingToday.breakLogs || [];
         existingToday.breakLogs.push(`[Resumed ${timeNow.slice(0, 5)}]`);
 
@@ -1979,20 +2674,73 @@
           flags: ["ACTIVE"],
           notes: ""
         };
-
         state.dailyOverrides[`${today}|${name}`] = "Working";
         state.logs.unshift(newLog);
         syncShiftLog(newLog);
-        syncPayloadToCloud({
-          recordType: "OVERRIDE",
-          date: today,
-          agentName: name,
-          assignedStatus: "Working",
-          updatedAt: new Date().toISOString()
-        });
+        syncPayloadToCloud({ recordType: "OVERRIDE", date: today, agentName: name, assignedStatus: "Working", updatedAt: new Date().toISOString() });
         renderAll();
         showToast(`🟢 Clocked in at ${newLog.clockIn} (Egypt Time)`);
       }
+    }
+
+    function openSelfFixShiftModal() {
+      const staleShift = state.logs.find(l => l.agentName === state.selectedAgent && (l.status === "ON_SHIFT" || l.status === "ON_BREAK") && isShiftForgotten(l));
+      if (!staleShift) return;
+      document.getElementById("selffix-subtitle").textContent = `Closing unended shift from ${sanitizeDateField(staleShift.date)} (Clocked in at ${sanitizeTimeField(staleShift.clockIn)}).`;
+      document.getElementById("selffix-clockout").value = "02:00:00";
+      document.getElementById("selffix-nethours").value = "8.0";
+      document.getElementById("selffix-calls").value = staleShift.calls || "";
+      document.getElementById("selffix-talk").value = staleShift.talkMins || "";
+      document.getElementById("selffix-leads").value = staleShift.leads || "";
+      document.getElementById("selffix-error").classList.add("hidden");
+      document.getElementById("modal-selffix-shift").classList.remove("hidden");
+      document.getElementById("modal-selffix-shift").classList.add("flex");
+    }
+
+    function confirmSelfFixShift() {
+      const staleShift = state.logs.find(l => l.agentName === state.selectedAgent && (l.status === "ON_SHIFT" || l.status === "ON_BREAK") && isShiftForgotten(l));
+      if (!staleShift) return;
+
+      const outTime = document.getElementById("selffix-clockout").value.trim();
+      const netHrsVal = document.getElementById("selffix-nethours").value.trim();
+      const callsVal = document.getElementById("selffix-calls").value.trim();
+      const talkVal = document.getElementById("selffix-talk").value.trim();
+      const leadsVal = document.getElementById("selffix-leads").value.trim();
+      const errEl = document.getElementById("selffix-error");
+
+      if (!outTime || netHrsVal === "" || callsVal === "" || talkVal === "" || leadsVal === "") {
+        errEl.textContent = "Please fill in all fields to close your earlier shift.";
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      const netHours = Math.max(0, Math.min(15, Number(netHrsVal)));
+      const totalCalls = Number(callsVal);
+      const callsPerHr = netHours > 0 ? Math.round((totalCalls / netHours) * 10) / 10 : totalCalls;
+      const agentLimit = getAgentBreakLimit(staleShift.agentName);
+
+      const flags = (staleShift.flags || []).filter(f => !["ACTIVE", "FORGOTTEN_OUT", "SHORT_SHIFT", "FULL_SHIFT", "LOW_DIALS"].includes(f));
+      flags.push(netHours < state.settings.targetHours ? "SHORT_SHIFT" : "FULL_SHIFT");
+      if (staleShift.breakMins > agentLimit && !flags.includes("BREAK_OVER")) flags.push("BREAK_OVER");
+      if (netHours >= 1 && callsPerHr < state.settings.minCallsPerHr) flags.push("LOW_DIALS");
+
+      staleShift.clockOut = outTime.length === 5 ? outTime + ":00" : outTime;
+      staleShift.netHours = netHours;
+      staleShift.accumulatedWorkMs = Math.round(netHours * 3600000);
+      staleShift.sessionStartTs = null;
+      staleShift.breakStartTs = null;
+      staleShift.calls = totalCalls;
+      staleShift.talkMins = Number(talkVal);
+      staleShift.leads = Number(leadsVal);
+      staleShift.callsPerHr = callsPerHr;
+      staleShift.status = "OFF_SHIFT";
+      staleShift.flags = flags;
+      staleShift.notes = [staleShift.notes, "Self-closed earlier shift"].filter(Boolean).join(" | ");
+
+      closeModal("modal-selffix-shift");
+      syncShiftLog(staleShift);
+      renderAll();
+      showToast(`✅ Closed earlier shift (${netHours}h | ${totalCalls} calls)`);
     }
 
     function openBreakModal() {
@@ -2015,7 +2763,6 @@
 
       const now = Date.now();
       const timeNow = getEgyptTimeStr(now);
-
       const sessionStart = shift.sessionStartTs || now;
       shift.accumulatedWorkMs = (shift.accumulatedWorkMs || 0) + Math.max(0, now - sessionStart);
       shift.netHours = Math.round((shift.accumulatedWorkMs / 3600000) * 100) / 100;
@@ -2052,12 +2799,8 @@
         shift.breakLogs[lastIdx] = shift.breakLogs[lastIdx].replace("]", ` - ${mins}m]`);
       }
 
-      if (mins > state.settings.singleBreakCap && !shift.flags.includes("LONG_BREAK")) {
-        shift.flags.push("LONG_BREAK");
-      }
-      if (shift.breakMins > agentLimit && !shift.flags.includes("BREAK_OVER")) {
-        shift.flags.push("BREAK_OVER");
-      }
+      if (mins > state.settings.singleBreakCap && !shift.flags.includes("LONG_BREAK")) shift.flags.push("LONG_BREAK");
+      if (shift.breakMins > agentLimit && !shift.flags.includes("BREAK_OVER")) shift.flags.push("BREAK_OVER");
 
       syncShiftLog(shift);
       renderAll();
@@ -2089,9 +2832,7 @@
       }
 
       const now = Date.now();
-      const totalWorkMs = getShiftLiveWorkMs(shift, now);
-      const netHrsSoFar = Math.max(0.1, totalWorkMs / 3600000);
-
+      const netHrsSoFar = Math.max(0.1, getShiftLiveWorkMs(shift, now) / 3600000);
       shift.calls = Number(callsVal);
       shift.leads = Number(leadsVal);
       shift.callsPerHr = Math.round((shift.calls / netHrsSoFar) * 10) / 10;
@@ -2100,19 +2841,16 @@
       closeModal("modal-pulse");
       syncShiftLog(shift);
       renderAll();
-      showToast(`⚡ Pulse updated: ${shift.calls} calls (${shift.callsPerHr}/hr pace)`);
+      showToast(`⚡ Pulse updated: ${shift.calls} calls (${shift.callsPerHr}/hr) — Leaderboard updated!`);
     }
 
     function openClockOutModal() {
       const shift = getActiveShift(state.selectedAgent);
       if (!shift) return;
-      if (shift.status === "ON_BREAK") {
-        return showToast("⚠️ Click 'Resume Work' first to close your active break.");
-      }
+      if (shift.status === "ON_BREAK") return showToast("⚠️ Click 'Resume Work' first to close your active break.");
 
       const now = Date.now();
-      const totalWorkMs = getShiftLiveWorkMs(shift, now);
-      const netHrs = Math.max(0, totalWorkMs / 3600000);
+      const netHrs = Math.max(0, getShiftLiveWorkMs(shift, now) / 3600000);
 
       const warnBox = document.getElementById("short-shift-warning");
       const warnMsg = document.getElementById("short-shift-msg");
@@ -2127,20 +2865,56 @@
       }
 
       const subEl = document.getElementById("eod-modal-subtitle");
-      if (shift.calls > 0) {
-        subEl.textContent = `Previous calls this shift: ${shift.calls}. Enter the new calls, talk mins, and leads from this session—they will be added automatically to your shift total.`;
-      } else {
-        subEl.textContent = `Submit your final numbers for this shift (${sanitizeDateField(shift.date)}) to complete clock-out.`;
-      }
+      subEl.textContent = shift.calls > 0
+        ? `Previous calls this shift: ${shift.calls}. Enter the new calls, talk mins, and leads from this session.`
+        : `Submit your final numbers for this shift (${sanitizeDateField(shift.date)}) to complete clock-out.`;
 
       document.getElementById("eod-calls").value = "";
       document.getElementById("eod-talk").value = "";
       document.getElementById("eod-leads").value = "";
       document.getElementById("eod-notes").value = "";
       document.getElementById("eod-error").classList.add("hidden");
+      updateEodAutoSummaryPreview();
 
       document.getElementById("modal-clockout").classList.remove("hidden");
       document.getElementById("modal-clockout").classList.add("flex");
+    }
+
+    function updateEodAutoSummaryPreview() {
+      const shift = getActiveShift(state.selectedAgent);
+      if (!shift) return;
+      const now = Date.now();
+      const netHrs = Math.max(0, Math.round((getShiftLiveWorkMs(shift, now) / 3600000) * 100) / 100);
+      const addedCalls = Number(document.getElementById("eod-calls").value || 0);
+      const addedTalk = Number(document.getElementById("eod-talk").value || 0);
+      const addedLeads = Number(document.getElementById("eod-leads").value || 0);
+
+      const totalCalls = Number(shift.calls || 0) + addedCalls;
+      const totalTalk = Number(shift.talkMins || 0) + addedTalk;
+      const totalLeads = Number(shift.leads || 0) + addedLeads;
+      const cph = netHrs > 0 ? (totalCalls / netHrs).toFixed(1) : totalCalls.toFixed(1);
+
+      document.getElementById("eod-preview-metrics").textContent =
+        `Net Shift: ${netHrs.toFixed(2)}h • Total Calls: ${totalCalls} • Leads: ${totalLeads} • Pace: ${cph}/hr`;
+
+      const statusEl = document.getElementById("eod-preview-status");
+      const agentLimit = getAgentBreakLimit(shift.agentName);
+      const isClean = netHrs >= state.settings.targetHours && shift.breakMins <= agentLimit && (netHrs < 1 || Number(cph) >= state.settings.minCallsPerHr);
+      statusEl.textContent = isClean ? "✅ Clean Shift (+1 Streak)" : "⚠️ Flagged Shift";
+      statusEl.className = isClean ? "font-bold text-emerald-400" : "font-bold text-amber-300";
+
+      const typoEl = document.getElementById("eod-typo-warning");
+      const warnings = [];
+      if (netHrs >= 0.5 && Number(cph) > 120) warnings.push(`Unusually high pace (${cph} calls/hr) — double-check your Calls number.`);
+      if (totalTalk > Math.round(netHrs * 60) + 15) warnings.push(`Talk Mins (${totalTalk}m) exceeds total Net Shift (${Math.round(netHrs * 60)}m).`);
+      if (addedLeads > addedCalls && addedCalls > 0) warnings.push(`Leads (${addedLeads}) cannot be higher than Calls (${addedCalls}).`);
+
+      if (warnings.length > 0) {
+        typoEl.textContent = "🚨 Typo Check: " + warnings.join(" ");
+        typoEl.classList.remove("hidden");
+      } else {
+        typoEl.classList.add("hidden");
+      }
     }
 
     function confirmClockOut() {
@@ -2173,30 +2947,17 @@
       }
 
       state.isSubmitting = true;
-
       const totalCalls = Number(shift.calls || 0) + Number(callsVal);
       const totalTalkMins = Number(shift.talkMins || 0) + Number(talkVal);
       const totalLeads = Number(shift.leads || 0) + Number(leadsVal);
       const callsPerHr = netHours > 0 ? Math.round((totalCalls / netHours) * 10) / 10 : totalCalls;
 
       const flags = shift.flags.filter(f => !["ACTIVE", "SHORT_SHIFT", "FULL_SHIFT", "LOW_DIALS", "FORGOTTEN_OUT"].includes(f));
-      if (netHours < state.settings.targetHours) {
-        flags.push("SHORT_SHIFT");
-      } else {
-        flags.push("FULL_SHIFT");
-      }
-      if (shift.breakMins > agentLimit && !flags.includes("BREAK_OVER")) {
-        flags.push("BREAK_OVER");
-      }
-      if (netHours >= 1 && callsPerHr < state.settings.minCallsPerHr) {
-        flags.push("LOW_DIALS");
-      }
+      flags.push(netHours < state.settings.targetHours ? "SHORT_SHIFT" : "FULL_SHIFT");
+      if (shift.breakMins > agentLimit && !flags.includes("BREAK_OVER")) flags.push("BREAK_OVER");
+      if (netHours >= 1 && callsPerHr < state.settings.minCallsPerHr) flags.push("LOW_DIALS");
 
-      const combinedNotes = [
-        shift.notes,
-        shortReason ? `Early Out: ${shortReason}` : "",
-        notesVal
-      ].filter(Boolean).join(" | ");
+      const combinedNotes = [shift.notes, shortReason ? `Early Out: ${shortReason}` : "", notesVal].filter(Boolean).join(" | ");
 
       shift.clockOut = getEgyptTimeStr(now);
       shift.accumulatedWorkMs = totalWorkMs;
@@ -2242,19 +3003,16 @@
       const m = document.getElementById(id);
       m.classList.add("hidden");
       m.classList.remove("flex");
-      if (id === "modal-inspect-agent") {
-        state.inspectedAgentName = "";
-      }
+      if (id === "modal-inspect-agent") state.inspectedAgentName = "";
     }
+
     // =========================================================
-    // 8. NAVIGATION
+    // 10. NAVIGATION & RENDERING (CONSOLE, FLOOR, ADMIN, ARCHIVE)
     // =========================================================
     function switchTab(tab) {
-      if (tab === "admin" && !isCurrentUserAdmin()) {
-        return showToast("🚫 Admin access is restricted.");
-      }
+      if (tab === "admin" && !isCurrentUserAdmin()) return showToast("🚫 Admin access is restricted.");
 
-      ["tracker", "calendar", "floor", "rules", "admin"].forEach(t => {
+      ["tracker", "leaderboard", "calendar", "floor", "rules", "admin"].forEach(t => {
         document.getElementById("view-" + t).classList.add("hidden");
         const btn = document.getElementById("tab-" + t);
         btn.classList.remove("bg-emerald-600", "text-white", "shadow");
@@ -2266,6 +3024,7 @@
       activeBtn.classList.add("bg-emerald-600", "text-white", "shadow");
       activeBtn.classList.remove("text-slate-300");
 
+      if (tab === "leaderboard") renderLeaderboard();
       if (tab === "calendar") renderCalendarView();
       if (tab === "floor") renderFloor();
       if (tab === "rules") renderRulesView();
@@ -2280,32 +3039,29 @@
       document.getElementById("rule-min-cph").textContent = `${state.settings.minCallsPerHr} calls per net working hour`;
     }
 
-    // =========================================================
-    // 9. RENDERING: CALLER PROFILE, PERSONAL STATS & HISTORY
-    // =========================================================
     function populateAgentDropdowns() {
-      const sorted = [...state.agents].sort((a, b) => a.localeCompare(b));
+      const activeSorted = getActiveAgents().sort((a, b) => a.localeCompare(b));
+      const allSorted = [...state.agents].sort((a, b) => a.localeCompare(b));
       const histSel = document.getElementById("hist-agent");
       const calBalSel = document.getElementById("cal-balance-agent");
       const leaveFilterSel = document.getElementById("leave-agent-filter");
 
       const currentHist = histSel.value;
-      histSel.innerHTML = `<option value="ALL">All Agents (${sorted.length})</option>` +
-        sorted.map(n => `<option value="${escapeHtml(n)}" ${n === currentHist ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
+      histSel.innerHTML = `<option value="ALL">All Agents (${allSorted.length})</option>` +
+        allSorted.map(n => `<option value="${escapeHtml(n)}" ${n === currentHist ? "selected" : ""}>${escapeHtml(n)}${state.archivedAgents.includes(n) ? " (Archived)" : ""}</option>`).join("");
 
-      const currentCalBal = calBalSel.value || (sorted[0] || "");
-      calBalSel.innerHTML = sorted.map(n => `<option value="${escapeHtml(n)}" ${n === currentCalBal ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
+      const currentCalBal = calBalSel.value || (activeSorted[0] || "");
+      calBalSel.innerHTML = activeSorted.map(n => `<option value="${escapeHtml(n)}" ${n === currentCalBal ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
 
       const currentLeaveFilter = leaveFilterSel.value;
       leaveFilterSel.innerHTML = `<option value="ALL">All Agents</option>` +
-        sorted.map(n => `<option value="${escapeHtml(n)}" ${n === currentLeaveFilter ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
+        activeSorted.map(n => `<option value="${escapeHtml(n)}" ${n === currentLeaveFilter ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
     }
 
     function setPersonalStatsRange(range) {
       state.personalStatsRange = range;
       ["week", "month", "all"].forEach(r => {
-        const btn = document.getElementById("pstat-" + r);
-        btn.className = r === range
+        document.getElementById("pstat-" + r).className = r === range
           ? "px-2.5 py-1 rounded text-[11px] font-bold bg-emerald-600 text-white"
           : "px-2.5 py-1 rounded text-[11px] font-bold text-slate-400 hover:text-white";
       });
@@ -2336,14 +3092,8 @@
       const now = Date.now();
       const allMyLogs = state.logs.filter(l => l.agentName === agentName);
       let filtered = allMyLogs;
-
-      if (state.personalStatsRange === "week") {
-        const cutoff = getDaysAgoStr(6);
-        filtered = allMyLogs.filter(l => sanitizeDateField(l.date) >= cutoff);
-      } else if (state.personalStatsRange === "month") {
-        const cutoff = getMonthStartStr();
-        filtered = allMyLogs.filter(l => sanitizeDateField(l.date) >= cutoff);
-      }
+      if (state.personalStatsRange === "week") filtered = allMyLogs.filter(l => sanitizeDateField(l.date) >= getDaysAgoStr(6));
+      else if (state.personalStatsRange === "month") filtered = allMyLogs.filter(l => sanitizeDateField(l.date) >= getMonthStartStr());
 
       const shiftsCount = filtered.length;
       const netHrs = filtered.reduce((s, r) => s + (getShiftLiveWorkMs(r, now) / 3600000), 0);
@@ -2384,11 +3134,8 @@
         }).join("");
       }
 
-      const myLeaves = state.leaves
-        .filter(lv => lv.agentName === agentName)
-        .sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
+      const myLeaves = state.leaves.filter(lv => lv.agentName === agentName).sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
       const leavesTbody = document.getElementById("personal-leaves-tbody");
-
       const statusBadge = {
         "PENDING": `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">⏳ Pending</span>`,
         "APPROVED": `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">✅ Approved</span>`,
@@ -2414,6 +3161,8 @@
       const lockedHeader = document.getElementById("locked-profile-header");
       const adminBanner = document.getElementById("admin-profile-banner");
       const adminBadge = document.getElementById("locked-admin-badge");
+      const streakBadge = document.getElementById("personal-streak-badge");
+      const campSub = document.getElementById("locked-campaign-subtitle");
       const emptyEl = document.getElementById("no-agent-state");
       const consoleEl = document.getElementById("agent-console");
       const pillEl = document.getElementById("agent-status-pill");
@@ -2440,12 +3189,25 @@
       else adminBadge.classList.add("hidden");
 
       const name = lockedAgent;
-
       if (name === ADMIN_PROFILE_NAME) {
+        streakBadge.classList.add("hidden");
+        campSub.classList.add("hidden");
         consoleEl.classList.add("hidden");
         pillEl.classList.add("hidden");
         adminBanner.classList.remove("hidden");
         return;
+      }
+
+      const streak = getAgentCleanStreak(name);
+      streakBadge.textContent = `🔥 ${streak} Clean Shift${streak === 1 ? "" : "s"} in a Row`;
+      streakBadge.classList.remove("hidden");
+
+      const campInfo = getAgentCampaignInfo(name);
+      if (campInfo && campInfo.campaignName) {
+        campSub.textContent = `🎯 ${campInfo.campaignName}${campInfo.role ? ` • ${campInfo.role}` : ""}${campInfo.aliasName ? ` • Caller ID: ${campInfo.aliasName}` : ""}`;
+        campSub.classList.remove("hidden");
+      } else {
+        campSub.classList.add("hidden");
       }
 
       adminBanner.classList.add("hidden");
@@ -2468,7 +3230,7 @@
       const forgottenBanner = document.getElementById("forgotten-shift-banner");
       if (staleShift) {
         forgottenBanner.classList.remove("hidden");
-        document.getElementById("forgotten-shift-text").textContent = `⚠️ Note: Your earlier shift from ${sanitizeDateField(staleShift.date)} was left open past 15 hours and flagged for Admin review. You may click Clock In to start a new shift.`;
+        document.getElementById("forgotten-shift-text").textContent = `⚠️ Unclosed Shift from ${sanitizeDateField(staleShift.date)} (open >15h). Close it now or Clock In for today:`;
       } else {
         forgottenBanner.classList.add("hidden");
       }
@@ -2483,7 +3245,6 @@
 
       const dot = document.getElementById("status-dot");
       const label = document.getElementById("status-label");
-
       const btnIn = document.getElementById("btn-clock-in");
       const btnBrkStart = document.getElementById("btn-break-start");
       const btnBrkEnd = document.getElementById("btn-break-end");
@@ -2503,8 +3264,7 @@
         if (currentShift) {
           document.getElementById("clock-in-sub").textContent = `First In: ${sanitizeTimeField(currentShift.clockIn)} | Last Out: ${sanitizeTimeField(currentShift.clockOut)}`;
           document.getElementById("break-quota-text").textContent = `${currentShift.breakMins} / ${agentLimit}m`;
-          const pct = Math.min(100, Math.round((currentShift.breakMins / agentLimit) * 100));
-          document.getElementById("break-progress").style.width = pct + "%";
+          document.getElementById("break-progress").style.width = Math.min(100, Math.round((currentShift.breakMins / agentLimit) * 100)) + "%";
           document.getElementById("agent-pulse-display").textContent = `${currentShift.callsPerHr}/hr`;
           document.getElementById("agent-pulse-sub").textContent = `${currentShift.calls} calls | ${currentShift.leads} leads today`;
         } else {
@@ -2548,7 +3308,6 @@
           document.getElementById("agent-pulse-sub").textContent = "Tap Mid-Shift Pulse to update";
         }
       }
-
       updateLiveTimers();
     }
 
@@ -2556,8 +3315,10 @@
       const now = Date.now();
       const activeShift = getActiveShift(state.selectedAgent);
       const currentShift = getCurrentOrTodayShift(state.selectedAgent);
+      const baseTitle = "ACQ Ops Tracker — Floor, Leave & Campaigns";
 
       if (!activeShift) {
+        document.title = baseTitle;
         if (currentShift) {
           document.getElementById("timer-work").textContent = formatDurationHMS(getShiftLiveWorkMs(currentShift, now));
           document.getElementById("timer-break").textContent = formatDurationMS((currentShift.breakMins || 0) * 60000);
@@ -2575,8 +3336,31 @@
       if (activeShift.status === "ON_BREAK" && activeShift.breakStartTs) {
         activeBreakMs = Math.max(0, now - activeShift.breakStartTs);
         document.getElementById("timer-current-break").textContent = formatDurationMS(activeBreakMs);
+
+        const singleBreakMins = Math.floor(activeBreakMs / 60000);
+        const totalBreakMinsLive = Number(activeShift.breakMins || 0) + singleBreakMins;
+        const singleLeft = state.settings.singleBreakCap - singleBreakMins;
+        const dailyLeft = agentLimit - totalBreakMinsLive;
+        const minLeft = Math.min(singleLeft, dailyLeft);
+
+        if (minLeft <= 5 && minLeft >= 0) {
+          const flash = Math.floor(now / 1000) % 2 === 0;
+          document.title = flash ? `⚠️ ${minLeft}m Break Left! | ACQ Ops` : `☕ ${formatDurationMS(activeBreakMs)} Break | ACQ Ops`;
+          const warnKey = `${activeShift.id}_${activeShift.breakStartTs}`;
+          if (state.warnedBreakKey !== warnKey) {
+            state.warnedBreakKey = warnKey;
+            playBreakWarningChime();
+            showToast(`⚠️ Break Heads-Up: ${minLeft} minute(s) remaining before break limit!`);
+          }
+        } else if (minLeft < 0) {
+          document.title = `🚨 BREAK OVER (${formatDurationMS(activeBreakMs)}) | ACQ Ops`;
+        } else {
+          document.title = `☕ ${formatDurationMS(activeBreakMs)} Break | ACQ Ops`;
+        }
       } else {
         document.getElementById("timer-current-break").textContent = "--:--";
+        const netWorkMs = getShiftLiveWorkMs(activeShift, now);
+        document.title = `🟢 ${formatDurationHMS(netWorkMs)} | ACQ Ops`;
       }
 
       const totalBreakMs = ((activeShift.breakMins || 0) * 60000) + activeBreakMs;
@@ -2594,7 +3378,7 @@
     }
 
     // =========================================================
-    // 10. LIVE FLOOR MONITOR & ADMIN PROFILE INSPECTOR
+    // 11. LIVE FLOOR MONITOR & ADMIN PROFILE INSPECTOR
     // =========================================================
     function setFloorFilter(filter) {
       state.floorFilter = filter;
@@ -2608,11 +3392,23 @@
       renderFloor();
     }
 
+    function updateHeaderHeadcountPill() {
+      let duty = 0, brk = 0;
+      getActiveAgents().forEach(a => {
+        const act = getActiveShift(a);
+        if (act && act.status === "ON_SHIFT") duty++;
+        else if (act && act.status === "ON_BREAK") brk++;
+      });
+      document.getElementById("hdr-duty-count").textContent = duty;
+      document.getElementById("hdr-break-count").textContent = brk;
+    }
+
     function renderFloor() {
       const today = getEgyptDateStr();
       const now = Date.now();
       const query = (document.getElementById("floor-search").value || "").toLowerCase();
       const isAdmin = isCurrentUserAdmin();
+      const activeList = getActiveAgents();
 
       const handoffBtn = document.getElementById("btn-floor-handoff");
       const floorSub = document.getElementById("floor-subtitle");
@@ -2626,13 +3422,14 @@
 
       let onDuty = 0, onBreak = 0, onLeaveOrOff = 0, offShift = 0, flaggedCount = 0;
 
-      const cardsData = state.agents.map(agentName => {
+      const cardsData = activeList.map(agentName => {
         const active = getActiveShift(agentName);
         const staleOpen = state.logs.find(l => l.agentName === agentName && (l.status === "ON_SHIFT" || l.status === "ON_BREAK") && isShiftForgotten(l, now));
         const todayLog = state.logs.find(l => l.agentName === agentName && sanitizeDateField(l.date) === today);
         const latestLog = active || staleOpen || todayLog || null;
         const agentLimit = getAgentBreakLimit(agentName);
         const assignedStatus = getEffectiveDailyAssignment(today, agentName);
+        const campInfo = getAgentCampaignInfo(agentName);
 
         const isAssignedLeaveOrOff = ["Scheduled Off", "Annual", "Casual", "UPL", "Sick Leave"].includes(assignedStatus);
         const isAssignedAbsent = assignedStatus === "Absent / No-Show";
@@ -2646,9 +3443,7 @@
         let isLiveBreakOvertime = false;
         if (active && active.status === "ON_BREAK" && active.breakStartTs) {
           currentBreakMins = Math.floor((now - active.breakStartTs) / 60000);
-          if (currentBreakMins >= state.settings.liveBreakAlertMins) {
-            isLiveBreakOvertime = true;
-          }
+          if (currentBreakMins >= state.settings.liveBreakAlertMins) isLiveBreakOvertime = true;
         }
 
         const hasRedFlag = isLiveBreakOvertime || isAssignedAbsent || Boolean(staleOpen) || flags.some(f => ["SHORT_SHIFT", "BREAK_OVER", "LONG_BREAK", "LOW_DIALS", "FORGOTTEN_OUT"].includes(f));
@@ -2659,10 +3454,10 @@
         else offShift++;
         if (hasRedFlag) flaggedCount++;
 
-        return { agentName, status, active, staleOpen, latestLog, flags, hasRedFlag, notStartedToday, assignedStatus, isAssignedLeaveOrOff, isAssignedAbsent, agentLimit, currentBreakMins, isLiveBreakOvertime };
+        return { agentName, campInfo, status, active, staleOpen, latestLog, flags, hasRedFlag, notStartedToday, assignedStatus, isAssignedLeaveOrOff, isAssignedAbsent, agentLimit, currentBreakMins, isLiveBreakOvertime };
       });
 
-      document.getElementById("stat-total").textContent = state.agents.length;
+      document.getElementById("stat-total").textContent = activeList.length;
       document.getElementById("stat-duty").textContent = onDuty;
       document.getElementById("stat-break").textContent = onBreak;
       document.getElementById("stat-leave").textContent = onLeaveOrOff;
@@ -2670,7 +3465,10 @@
       document.getElementById("stat-flagged").textContent = flaggedCount;
 
       const filtered = cardsData.filter(c => {
-        if (query && !c.agentName.toLowerCase().includes(query)) return false;
+        if (query) {
+          const hay = `${c.agentName} ${c.campInfo?.campaignName || ""} ${c.campInfo?.aliasName || ""}`.toLowerCase();
+          if (!hay.includes(query)) return false;
+        }
         if (state.floorFilter === "ON_SHIFT") return c.status === "ON_SHIFT";
         if (state.floorFilter === "ON_BREAK") return c.status === "ON_BREAK";
         if (state.floorFilter === "ON_LEAVE") return c.status === "ON_LEAVE";
@@ -2682,8 +3480,7 @@
       const order = { ON_BREAK: 1, ON_SHIFT: 2, ON_LEAVE: 3, OFF_SHIFT: 4 };
       filtered.sort((a, b) => (b.isLiveBreakOvertime - a.isLiveBreakOvertime) || (order[a.status] - order[b.status]) || a.agentName.localeCompare(b.agentName));
 
-      const grid = document.getElementById("floor-grid");
-      grid.innerHTML = filtered.map(c => {
+      document.getElementById("floor-grid").innerHTML = filtered.map(c => {
         const escapedJs = escapeJsStr(c.agentName);
         const borderClass = c.isLiveBreakOvertime || c.isAssignedAbsent || c.staleOpen ? "border-rose-500 ring-1 ring-rose-500/50" :
                             c.status === "ON_BREAK" ? "border-amber-500/40" :
@@ -2705,6 +3502,10 @@
           ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800/70 text-slate-500 border border-slate-700/70">⏳ Not Clocked In</span>`
           : `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">✅ Completed</span>`;
 
+        const campSubtitle = c.campInfo && c.campInfo.campaignName
+          ? `<div class="text-[11px] text-sky-400 mt-0.5">🎯 ${escapeHtml(c.campInfo.campaignName)}${c.campInfo.aliasName ? ` • ${escapeHtml(c.campInfo.aliasName)}` : ""}</div>`
+          : `<div class="text-[11px] text-slate-500 mt-0.5">🪑 Unassigned / Bench</div>`;
+
         let detailHtml = c.isAssignedLeaveOrOff
           ? `<div class="text-xs text-sky-300/90 mt-3">Assigned Status: <strong>${escapeHtml(c.assignedStatus)}</strong></div>`
           : c.isAssignedAbsent
@@ -2715,16 +3516,13 @@
           const l = c.latestLog;
           const totalBrkLive = Number(l.breakMins || 0) + c.currentBreakMins;
           const liveWorkHrs = (getShiftLiveWorkMs(l, now) / 3600000).toFixed(2);
-
           const pulseBadge = l.calls > 0
             ? `<div class="text-slate-300 bg-slate-800/80 px-2.5 py-1.5 rounded-lg flex justify-between items-center">
                 <span>Calls: <strong>${l.calls}</strong> (<strong class="${l.callsPerHr < state.settings.minCallsPerHr ? 'text-rose-400' : 'text-sky-400'}">${l.callsPerHr}/hr</strong>)</span>
                 <span>Leads: <strong>${l.leads}</strong></span>
                 <span>Active: <strong>${liveWorkHrs}h</strong></span>
               </div>`
-            : `<div class="text-slate-400 bg-slate-800/50 px-2.5 py-1 rounded-lg flex justify-between items-center">
-                <span>Cumulative Active: <strong class="text-emerald-300">${liveWorkHrs}h</strong></span>
-              </div>`;
+            : `<div class="text-slate-400 bg-slate-800/50 px-2.5 py-1 rounded-lg flex justify-between items-center"><span>Cumulative Active: <strong class="text-emerald-300">${liveWorkHrs}h</strong></span></div>`;
 
           detailHtml = `
             <div class="mt-3 pt-3 border-t border-slate-800/80 space-y-2 text-xs">
@@ -2733,9 +3531,7 @@
                 <span>Out: <strong class="mono">${escapeHtml(sanitizeTimeField(l.clockOut)) || "--:--"}</strong></span>
                 <span>Break: <strong class="${totalBrkLive > c.agentLimit ? 'text-rose-400' : 'text-amber-300'}">${totalBrkLive}/${c.agentLimit}m</strong></span>
               </div>
-              ${l.status === "ON_BREAK" && !c.staleOpen ? `<div class="${c.isLiveBreakOvertime ? 'text-rose-200 bg-rose-950/60 border border-rose-500/40' : 'text-amber-300 bg-amber-950/40'} px-2.5 py-1 rounded-lg">
-                ${c.isLiveBreakOvertime ? '🚨 OVERTIME BREAK: ' : 'Reason: '}${escapeHtml(l.currentBreakReason || "Break")} (${c.currentBreakMins}m elapsed)
-              </div>` : ""}
+              ${l.status === "ON_BREAK" && !c.staleOpen ? `<div class="${c.isLiveBreakOvertime ? 'text-rose-200 bg-rose-950/60 border border-rose-500/40' : 'text-amber-300 bg-amber-950/40'} px-2.5 py-1 rounded-lg">${c.isLiveBreakOvertime ? '🚨 OVERTIME BREAK: ' : 'Reason: '}${escapeHtml(l.currentBreakReason || "Break")} (${c.currentBreakMins}m elapsed)</div>` : ""}
               ${pulseBadge}
               <div class="flex flex-wrap gap-1 pt-1">${renderFlagBadges(c.flags)}</div>
             </div>
@@ -2756,7 +3552,10 @@
           <div ${clickAttr} class="bg-slate-900 border ${borderClass} ${hoverAttr} rounded-xl p-4 flex flex-col justify-between shadow">
             <div>
               <div class="flex items-start justify-between gap-2">
-                <h4 class="font-semibold text-sm text-slate-100 leading-snug ${isAdmin ? 'underline decoration-slate-700 underline-offset-4' : ''}">${escapeHtml(c.agentName)}</h4>
+                <div class="min-w-0">
+                  <h4 class="font-semibold text-sm text-slate-100 leading-snug ${isAdmin ? 'underline decoration-slate-700 underline-offset-4' : ''}">${escapeHtml(c.agentName)}</h4>
+                  ${campSubtitle}
+                </div>
                 ${badge}
               </div>
               ${detailHtml}
@@ -2774,15 +3573,12 @@
       const boundEmail = getBoundEmailForAgent(agentName);
       const limit = getAgentBreakLimit(agentName);
       const currentLog = getCurrentOrTodayShift(agentName);
+      const camp = getAgentCampaignInfo(agentName);
 
       document.getElementById("inspect-agent-name").textContent = agentName;
-      document.getElementById("inspect-agent-meta").textContent = `${boundEmail ? "☁️ Linked Gmail: " + boundEmail : "Not linked to Google yet"} • Daily Break Quota: ${limit} mins`;
+      document.getElementById("inspect-agent-meta").textContent = `${boundEmail ? "☁️ " + boundEmail : "Not linked"} • Break Quota: ${limit}m${camp && camp.campaignName ? ` • 🎯 ${camp.campaignName} (${camp.role || "Caller"})` : ""}`;
 
-      let activeHrsStr = "0.00h";
-      let breakMinsStr = `0 / ${limit}m`;
-      let statusUpdatesStr = "No activity today";
-      let callsLeadsStr = "0 / 0";
-
+      let activeHrsStr = "0.00h", breakMinsStr = `0 / ${limit}m`, statusUpdatesStr = "No activity today", callsLeadsStr = "0 / 0";
       if (currentLog) {
         const activeBreakMins = (currentLog.status === "ON_BREAK" && currentLog.breakStartTs) ? Math.floor((now - currentLog.breakStartTs) / 60000) : 0;
         activeHrsStr = (getShiftLiveWorkMs(currentLog, now) / 3600000).toFixed(2) + "h";
@@ -2792,57 +3588,44 @@
       }
 
       document.getElementById("inspect-today-cards").innerHTML = `
-        <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Active Time (Current Shift)</div><div class="mono text-lg font-bold text-emerald-400 mt-0.5">${activeHrsStr}</div></div>
-        <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Total Breaks (Current Shift)</div><div class="mono text-lg font-bold text-amber-300 mt-0.5">${breakMinsStr}</div></div>
-        <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Current Calls / Leads</div><div class="mono text-lg font-bold text-sky-400 mt-0.5">${callsLeadsStr}</div></div>
-        <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Status &amp; Break Updates</div><div class="text-xs font-medium text-slate-200 mt-1 truncate" title="${escapeHtml(statusUpdatesStr)}">${escapeHtml(statusUpdatesStr)}</div></div>
+        <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Active Time</div><div class="mono text-lg font-bold text-emerald-400 mt-0.5">${activeHrsStr}</div></div>
+        <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Total Breaks</div><div class="mono text-lg font-bold text-amber-300 mt-0.5">${breakMinsStr}</div></div>
+        <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Calls / Leads</div><div class="mono text-lg font-bold text-sky-400 mt-0.5">${callsLeadsStr}</div></div>
+        <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Status &amp; Updates</div><div class="text-xs font-medium text-slate-200 mt-1 truncate" title="${escapeHtml(statusUpdatesStr)}">${escapeHtml(statusUpdatesStr)}</div></div>
       `;
-
       document.getElementById("inspect-leave-cards").innerHTML = renderBalanceCardsHTML(agentName);
 
-      const agentLogs = state.logs
-        .filter(l => l.agentName === agentName)
-        .sort((a, b) => sanitizeDateField(b.date).localeCompare(sanitizeDateField(a.date)));
-
+      const agentLogs = state.logs.filter(l => l.agentName === agentName).sort((a, b) => sanitizeDateField(b.date).localeCompare(sanitizeDateField(a.date)));
       const shiftsTbody = document.getElementById("inspect-shifts-tbody");
-      if (agentLogs.length === 0) {
-        shiftsTbody.innerHTML = `<tr><td colspan="8" class="py-5 text-center text-slate-500">No shift history recorded yet.</td></tr>`;
-      } else {
-        shiftsTbody.innerHTML = agentLogs.map(l => {
-          const notesStr = [l.notes, ...(l.breakLogs || [])].filter(Boolean).join(" | ");
-          const dispHrs = (getShiftLiveWorkMs(l, now) / 3600000).toFixed(2);
-          return `
+      shiftsTbody.innerHTML = agentLogs.length === 0
+        ? `<tr><td colspan="8" class="py-5 text-center text-slate-500">No shift history recorded yet.</td></tr>`
+        : agentLogs.map(l => {
+            const notesStr = [l.notes, ...(l.breakLogs || [])].filter(Boolean).join(" | ");
+            return `
+              <tr class="hover:bg-slate-800/40">
+                <td class="py-2 px-2.5 mono text-slate-200 whitespace-nowrap">${escapeHtml(sanitizeDateField(l.date))}</td>
+                <td class="py-2 px-2.5 mono text-slate-300 whitespace-nowrap">${escapeHtml(sanitizeTimeField(l.clockIn))} → ${escapeHtml(sanitizeTimeField(l.clockOut)) || "Active"}</td>
+                <td class="py-2 px-2.5 mono ${l.breakMins > limit ? 'text-rose-400 font-bold' : 'text-slate-300'}">${l.breakMins}/${limit}m</td>
+                <td class="py-2 px-2.5 mono font-semibold text-emerald-400">${(getShiftLiveWorkMs(l, now) / 3600000).toFixed(2)}h</td>
+                <td class="py-2 px-2.5 mono text-slate-200">${l.calls} / ${l.leads}</td>
+                <td class="py-2 px-2.5 mono text-slate-300">${l.callsPerHr}</td>
+                <td class="py-2 px-2.5"><div class="flex flex-wrap gap-1">${renderFlagBadges(l.flags)}</div></td>
+                <td class="py-2 px-2.5 text-slate-300 max-w-xs">${escapeHtml(notesStr) || "—"}</td>
+              </tr>
+            `;
+          }).join("");
+
+      const agentLeaves = state.leaves.filter(lv => lv.agentName === agentName).sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
+      document.getElementById("inspect-leaves-tbody").innerHTML = agentLeaves.length === 0
+        ? `<tr><td colspan="4" class="py-5 text-center text-slate-500">No leave requests recorded.</td></tr>`
+        : agentLeaves.map(lv => `
             <tr class="hover:bg-slate-800/40">
-              <td class="py-2 px-2.5 mono text-slate-200 whitespace-nowrap">${escapeHtml(sanitizeDateField(l.date))}</td>
-              <td class="py-2 px-2.5 mono text-slate-300 whitespace-nowrap">${escapeHtml(sanitizeTimeField(l.clockIn))} → ${escapeHtml(sanitizeTimeField(l.clockOut)) || "Active"}</td>
-              <td class="py-2 px-2.5 mono ${l.breakMins > limit ? 'text-rose-400 font-bold' : 'text-slate-300'}">${l.breakMins}/${limit}m</td>
-              <td class="py-2 px-2.5 mono font-semibold text-emerald-400">${dispHrs}h</td>
-              <td class="py-2 px-2.5 mono text-slate-200">${l.calls} / ${l.leads}</td>
-              <td class="py-2 px-2.5 mono text-slate-300">${l.callsPerHr}</td>
-              <td class="py-2 px-2.5"><div class="flex flex-wrap gap-1">${renderFlagBadges(l.flags)}</div></td>
-              <td class="py-2 px-2.5 text-slate-300 max-w-xs">${escapeHtml(notesStr) || "—"}</td>
+              <td class="py-2 px-2.5 mono text-slate-200">${escapeHtml(sanitizeDateField(lv.date || lv.startDate))}</td>
+              <td class="py-2 px-2.5 text-sky-300 font-medium">${escapeHtml(lv.leaveType)}</td>
+              <td class="py-2 px-2.5 text-slate-400">${escapeHtml(lv.notes) || "—"}</td>
+              <td class="py-2 px-2.5 font-semibold text-slate-200">${escapeHtml(lv.status)}</td>
             </tr>
-          `;
-        }).join("");
-      }
-
-      const agentLeaves = state.leaves
-        .filter(lv => lv.agentName === agentName)
-        .sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
-
-      const leavesTbody = document.getElementById("inspect-leaves-tbody");
-      if (agentLeaves.length === 0) {
-        leavesTbody.innerHTML = `<tr><td colspan="4" class="py-5 text-center text-slate-500">No leave requests recorded.</td></tr>`;
-      } else {
-        leavesTbody.innerHTML = agentLeaves.map(lv => `
-          <tr class="hover:bg-slate-800/40">
-            <td class="py-2 px-2.5 mono text-slate-200">${escapeHtml(sanitizeDateField(lv.date || lv.startDate))}</td>
-            <td class="py-2 px-2.5 text-sky-300 font-medium">${escapeHtml(lv.leaveType)}</td>
-            <td class="py-2 px-2.5 text-slate-400">${escapeHtml(lv.notes) || "—"}</td>
-            <td class="py-2 px-2.5 font-semibold text-slate-200">${escapeHtml(lv.status)}</td>
-          </tr>
-        `).join("");
-      }
+          `).join("");
 
       document.getElementById("modal-inspect-agent").classList.remove("hidden");
       document.getElementById("modal-inspect-agent").classList.add("flex");
@@ -2869,11 +3652,7 @@
       shift.netHours = netHours;
       shift.callsPerHr = netHours > 0 ? Math.round((shift.calls / netHours) * 10) / 10 : shift.calls;
       shift.status = "OFF_SHIFT";
-      shift.flags = [
-        ...shift.flags.filter(f => f !== "ACTIVE"),
-        "ADMIN_FORCED_OUT",
-        ...(wasForgotten ? ["FORGOTTEN_OUT"] : [])
-      ].filter((v, i, a) => a.indexOf(v) === i);
+      shift.flags = [...shift.flags.filter(f => f !== "ACTIVE"), "ADMIN_FORCED_OUT", ...(wasForgotten ? ["FORGOTTEN_OUT"] : [])].filter((v, i, a) => a.indexOf(v) === i);
       shift.notes = [shift.notes, wasForgotten ? "Closed unended shift by Admin" : "Force closed by Admin"].filter(Boolean).join(" | ");
       syncShiftLog(shift);
       renderFloor();
@@ -2887,20 +3666,13 @@
       const todayLogs = state.logs.filter(l => sanitizeDateField(l.date) === today);
       const workedAgentsSet = new Set(todayLogs.map(l => l.agentName));
 
-      const offOrLeaveList = [];
-      const absentList = [];
-      const notClockedInWorkingList = [];
-
-      state.agents.forEach(agentName => {
+      const offOrLeaveList = [], absentList = [], notClockedInWorkingList = [];
+      getActiveAgents().forEach(agentName => {
         if (workedAgentsSet.has(agentName)) return;
         const status = getEffectiveDailyAssignment(today, agentName);
-        if (["Scheduled Off", "Annual", "Casual", "UPL", "Sick Leave"].includes(status)) {
-          offOrLeaveList.push({ agentName, status });
-        } else if (status === "Absent / No-Show") {
-          absentList.push(agentName);
-        } else {
-          notClockedInWorkingList.push(agentName);
-        }
+        if (["Scheduled Off", "Annual", "Casual", "UPL", "Sick Leave"].includes(status)) offOrLeaveList.push({ agentName, status });
+        else if (status === "Absent / No-Show") absentList.push(agentName);
+        else notClockedInWorkingList.push(agentName);
       });
 
       const totalNetHrs = todayLogs.reduce((s, l) => s + (getShiftLiveWorkMs(l, now) / 3600000), 0);
@@ -2916,11 +3688,7 @@
         perAgent[l.agentName].hrs += (getShiftLiveWorkMs(l, now) / 3600000);
       });
 
-      const top3 = Object.entries(perAgent)
-        .filter(([, v]) => v.calls > 0)
-        .sort((a, b) => b[1].calls - a[1].calls || b[1].leads - a[1].leads)
-        .slice(0, 3);
-
+      const top3 = Object.entries(perAgent).filter(([, v]) => v.calls > 0).sort((a, b) => b[1].calls - a[1].calls || b[1].leads - a[1].leads).slice(0, 3);
       const flaggedLogs = todayLogs.filter(l => l.flags.some(f => ["SHORT_SHIFT", "BREAK_OVER", "LONG_BREAK", "LOW_DIALS", "ADMIN_FORCED_OUT", "FORGOTTEN_OUT"].includes(f)));
 
       let report = `📋 DAILY FLOOR HANDOFF — ${today} (Egypt Time)\n━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -2957,9 +3725,6 @@
       showToast("📋 Daily Floor Handoff copied to clipboard!");
     }
 
-    // =========================================================
-    // 11. RENDERING: ADMIN LOGS, MONTHLY KPI ROLLUP & ROSTER
-    // =========================================================
     function renderFlagBadges(flags) {
       if (!flags || flags.length === 0) return "";
       const styles = {
@@ -3095,7 +3860,7 @@
     function getRollupRows(filteredLogs) {
       const now = Date.now();
       const selectedAgentFilter = document.getElementById("hist-agent").value;
-      const agentsToInclude = (selectedAgentFilter && selectedAgentFilter !== "ALL") ? [selectedAgentFilter] : state.agents;
+      const agentsToInclude = (selectedAgentFilter && selectedAgentFilter !== "ALL") ? [selectedAgentFilter] : getActiveAgents();
       const yearStr = getEgyptDateStr().slice(0, 4);
       const map = {};
 
@@ -3183,11 +3948,7 @@
       log.notes = document.getElementById("edit-notes").value.trim();
       log.callsPerHr = log.netHours > 0 ? Math.round((log.calls / log.netHours) * 10) / 10 : log.calls;
 
-      if (log.clockOut) {
-        log.status = "OFF_SHIFT";
-        log.sessionStartTs = null;
-        log.breakStartTs = null;
-      }
+      if (log.clockOut) { log.status = "OFF_SHIFT"; log.sessionStartTs = null; log.breakStartTs = null; }
 
       const agentLimit = getAgentBreakLimit(log.agentName);
       const preservedFlags = (log.flags || []).filter(f => ["LONG_BREAK", "ADMIN_FORCED_OUT"].includes(f));
@@ -3223,26 +3984,34 @@
       document.getElementById("cfg-live-break-alert").value = state.settings.liveBreakAlertMins;
       document.getElementById("cfg-target-hours").value = state.settings.targetHours;
       document.getElementById("cfg-min-cph").value = state.settings.minCallsPerHr;
+      document.getElementById("cfg-min-coverage").value = state.settings.minFloorCoverage;
+      updateBenchCountBadge();
+      renderCampaignBoard();
+      renderBenchBoard();
       renderDailyOverrideBoard();
       renderRosterList();
       refreshAdminTables();
     }
 
     function renderRosterList() {
-      const allProfiles = getAllClaimableProfiles();
-      document.getElementById("roster-count").textContent = state.agents.length;
+      const allProfiles = [ADMIN_PROFILE_NAME, ...[...state.agents].sort((a, b) => a.localeCompare(b))];
+      document.getElementById("roster-count").textContent = getActiveAgents().length;
       document.getElementById("roster-list").innerHTML = allProfiles.map(name => {
         const isOwnerProfile = name === ADMIN_PROFILE_NAME;
         const isPromotedAdmin = state.adminAgents.includes(name);
+        const isArchived = state.archivedAgents.includes(name);
         const customVal = state.agentBreakLimits[name] ?? "";
         const boundEmail = getBoundEmailForAgent(name);
         const escapedJs = escapeJsStr(name);
         const escapedEmailJs = escapeJsStr(boundEmail);
 
         return `
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2.5 text-xs ${isOwnerProfile || isPromotedAdmin ? 'bg-indigo-950/30' : 'hover:bg-slate-800/50'}">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2.5 text-xs ${isArchived ? 'opacity-50 bg-slate-950/60' : (isOwnerProfile || isPromotedAdmin ? 'bg-indigo-950/30' : 'hover:bg-slate-800/50')}">
             <div class="min-w-0 flex-1">
-              <div class="${isOwnerProfile || isPromotedAdmin ? 'text-indigo-300 font-bold' : 'text-slate-200 font-medium'} truncate">${isOwnerProfile || isPromotedAdmin ? '👑 ' + escapeHtml(name) : escapeHtml(name)}</div>
+              <div class="${isOwnerProfile || isPromotedAdmin ? 'text-indigo-300 font-bold' : 'text-slate-200 font-medium'} truncate">
+                ${isOwnerProfile || isPromotedAdmin ? '👑 ' : ''}${escapeHtml(name)}
+                ${isArchived ? '<span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">Archived</span>' : ''}
+              </div>
               <div class="text-[11px] ${boundEmail ? 'text-emerald-400' : 'text-slate-500'} flex items-center gap-2">
                 <span>${boundEmail ? `☁️ ${escapeHtml(boundEmail)}` : "Not linked to Google yet"}</span>
                 ${boundEmail ? `<button onclick="unlinkAgentEmail('${escapedEmailJs}', '${escapedJs}')" class="text-rose-400 hover:underline text-[10px] font-semibold">Unlink</button>` : ""}
@@ -3251,13 +4020,28 @@
             ${isOwnerProfile ? `<span class="text-[10px] text-indigo-400 font-semibold px-2">Primary Admin</span>` : `
               <div class="flex items-center gap-1.5 shrink-0">
                 <button onclick="togglePromoteAdmin('${escapedJs}')" class="px-2 py-1 rounded text-[10px] font-bold ${isPromotedAdmin ? 'bg-indigo-600 text-white' : 'bg-slate-800 hover:bg-indigo-600/30 text-indigo-300 border border-slate-700'}">${isPromotedAdmin ? '👑 Admin' : 'Make Admin'}</button>
-                <input type="number" min="0" value="${customVal}" placeholder="${state.settings.breakLimit}m" title="Custom Break Limit (mins)" onchange="setAgentBreakLimit('${escapedJs}', this.value)" class="w-14 bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-xs mono text-amber-300 text-center focus:outline-none focus:border-amber-500" />
-                <button onclick="removeAgent('${escapedJs}')" class="text-rose-400 hover:text-rose-300 text-[11px] ml-1">✕</button>
+                <button onclick="toggleArchiveAgent('${escapedJs}')" class="px-2 py-1 rounded text-[10px] font-bold ${isArchived ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 hover:bg-amber-600/20 text-slate-300 border border-slate-700'}">${isArchived ? 'Restore' : 'Archive'}</button>
+                <input type="number" min="0" value="${customVal}" placeholder="${state.settings.breakLimit}m" title="Custom Break Limit (mins)" onchange="setAgentBreakLimit('${escapedJs}', this.value)" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-xs mono text-amber-300 text-center" />
+                <button onclick="removeAgent('${escapedJs}')" class="text-rose-400 hover:text-rose-300 text-[11px] ml-0.5">✕</button>
               </div>
             `}
           </div>
         `;
       }).join("");
+    }
+
+    function toggleArchiveAgent(agentName) {
+      if (!isCurrentUserAdmin()) return;
+      if (state.archivedAgents.includes(agentName)) {
+        state.archivedAgents = state.archivedAgents.filter(a => a !== agentName);
+        showToast(`✅ Restored ${agentName} to active floor`);
+      } else {
+        state.archivedAgents.push(agentName);
+        showToast(`📦 Archived ${agentName} (hidden from Live Floor & Calendar; historical logs preserved)`);
+      }
+      syncRosterToCloud();
+      populateAgentDropdowns();
+      renderAll();
     }
 
     function togglePromoteAdmin(agentName) {
@@ -3275,12 +4059,12 @@
 
     function unlinkAgentEmail(email, agentName) {
       if (!isCurrentUserAdmin()) return;
-      if (!confirm(`Unlink ${email} from ${agentName} in Google Sheets so they can re-link a different profile?`)) return;
+      if (!confirm(`Unlink ${email} from ${agentName} in Google Sheets?`)) return;
       delete state.userProfiles[email.toLowerCase()];
       Object.entries(state.userProfiles).forEach(([k, v]) => { if (v === agentName) delete state.userProfiles[k]; });
-      syncPayloadToCloud({ recordType: "DELETE_PROFILE", email: email.toLowerCase(), agentName: agentName });
+      syncPayloadToCloud({ recordType: "DELETE_PROFILE", email: email.toLowerCase(), agentName });
       renderAll();
-      showToast(`✅ Unlinked ${email} from ${agentName} in Cloud`);
+      showToast(`✅ Unlinked ${email} from ${agentName}`);
     }
 
     function setAgentBreakLimit(name, val) {
@@ -3289,7 +4073,7 @@
       else state.agentBreakLimits[name] = Number(val);
       syncRosterToCloud();
       renderAll();
-      showToast(`Updated break limit for ${name} in Cloud`);
+      showToast(`Updated break limit for ${name}`);
     }
 
     function addAgent() {
@@ -3308,9 +4092,10 @@
 
     function removeAgent(name) {
       if (!isCurrentUserAdmin()) return;
-      if (!confirm(`Remove ${name} from active roster in Google Sheets?`)) return;
+      if (!confirm(`Permanently remove ${name} from active roster? (Tip: Use 'Archive' instead if you want to keep them in dropdown filters.)`)) return;
       state.agents = state.agents.filter(a => a !== name);
       state.adminAgents = state.adminAgents.filter(a => a !== name);
+      state.archivedAgents = state.archivedAgents.filter(a => a !== name);
       delete state.agentBreakLimits[name];
       syncRosterToCloud();
       populateAgentDropdowns();
@@ -3324,9 +4109,10 @@
       state.settings.liveBreakAlertMins = Number(document.getElementById("cfg-live-break-alert").value) || 20;
       state.settings.targetHours = Number(document.getElementById("cfg-target-hours").value) || 8;
       state.settings.minCallsPerHr = Number(document.getElementById("cfg-min-cph").value) || 25;
+      state.settings.minFloorCoverage = Number(document.getElementById("cfg-min-coverage").value) || 22;
       syncPayloadToCloud({ recordType: "CONFIG_SYNC", config: state.settings });
       renderAll();
-      showToast("☁️ Global thresholds saved to Google Sheets!");
+      showToast("☁️ Global thresholds & coverage guardrail saved to Google Sheets!");
     }
 
     function exportCurrentAdminCSV() {
@@ -3363,12 +4149,14 @@
     }
 
     // =========================================================
-    // 12. INITIALIZATION, VISIBILITY RESYNC & EGYPT CLOCK LOOP
+    // 12. INITIALIZATION, TAB-CLOSE GUARD & 5s ACTIVE SYNC LOOP
     // =========================================================
     function renderAll() {
       updateAdminTabVisibility();
+      updateHeaderHeadcountPill();
       renderAgentConsole();
       updatePendingLeaveBadge();
+      if (!document.getElementById("view-leaderboard").classList.contains("hidden")) renderLeaderboard();
       if (!document.getElementById("view-calendar").classList.contains("hidden")) renderCalendarView();
       if (!document.getElementById("view-floor").classList.contains("hidden")) renderFloor();
       if (!document.getElementById("view-rules").classList.contains("hidden")) renderRulesView();
@@ -3383,6 +4171,13 @@
       updateLiveTimers();
       if (!document.getElementById("view-floor").classList.contains("hidden")) renderFloor();
     }
+
+    window.addEventListener("beforeunload", (e) => {
+      if (state.selectedAgent && getActiveShift(state.selectedAgent)) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
 
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
@@ -3402,7 +4197,9 @@
     setInterval(tickClock, 1000);
 
     pullFromGoogleSheet(true);
-    setInterval(() => pullFromGoogleSheet(false), 15000);
+    setInterval(() => {
+      if (!document.hidden) pullFromGoogleSheet(false);
+    }, 5000);
   </script>
 </body>
 </html>
