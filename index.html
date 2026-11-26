@@ -254,7 +254,7 @@
             <button onclick="setLeaderboardRange('all')" id="lb-range-all" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white">All Time</button>
           </div>
           <select id="lb-campaign-filter" onchange="renderLeaderboard()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-100">
-            <option value="ALL">All Campaigns</option>
+            <option value="ALL">All Floor</option>
           </select>
           <select id="lb-sort-by" onchange="renderLeaderboard()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-100">
             <option value="calls">Sort: Most Calls</option>
@@ -395,7 +395,7 @@
       </div>
     </section>
     <!-- ========================================================= -->
-    <!-- VIEW 4: LIVE FLOOR MONITOR (HIDE BENCH + FILTERS)         -->
+    <!-- VIEW 4: LIVE FLOOR MONITOR (GLOBAL HIDE BENCH + FILTERS)  -->
     <!-- ========================================================= -->
     <section id="view-floor" class="hidden space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
@@ -404,10 +404,6 @@
           <p id="floor-subtitle" class="text-xs text-slate-400">Real-time floor attendance, break statuses, and active dialers.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <label class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 cursor-pointer select-none">
-            <input type="checkbox" id="floor-hide-bench-chk" onchange="renderFloor()" class="rounded bg-slate-900 border-slate-600 text-amber-500" />
-            <span>Hide Benched Agents</span>
-          </label>
           <button id="btn-floor-handoff" onclick="openHandoffModal()" class="hidden px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow flex items-center gap-1.5"><span>📋</span> Daily Floor Handoff</button>
           <button onclick="pullFromGoogleSheet(true)" class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200">🔄 Refresh</button>
         </div>
@@ -433,7 +429,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <select id="floor-campaign-filter" onchange="renderFloor()" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
-            <option value="ALL">All Campaigns</option>
+            <option value="ALL">All Floor</option>
           </select>
           <select id="floor-dialer-filter" onchange="renderFloor()" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
             <option value="ALL">All Dialers</option>
@@ -519,7 +515,7 @@
         </div>
       </div>
 
-      <!-- ADMIN SECTION A: CAMPAIGN ROSTER (WITH ADMIN-ONLY AGENT ID + BULK ACTIONS) -->
+      <!-- ADMIN SECTION A: CAMPAIGN ROSTER -->
       <div id="admin-section-campaigns" class="hidden space-y-5">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
           <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
@@ -538,7 +534,6 @@
             </div>
           </div>
 
-          <!-- BULK ACTION BAR -->
           <div id="campaign-bulk-bar" class="hidden bg-indigo-950/60 border border-indigo-500/40 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
             <span class="font-bold text-indigo-200"><span id="campaign-selected-count">0</span> agent(s) selected</span>
             <div class="flex flex-wrap items-center gap-2">
@@ -720,6 +715,13 @@
               <div><label class="block text-[11px] text-slate-400 mb-1">Target Full Shift Hours</label><input type="number" step="0.5" id="cfg-target-hours" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
               <div><label class="block text-[11px] text-slate-400 mb-1">Min Calls / Hour Benchmark</label><input type="number" id="cfg-min-cph" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
               <div><label class="block text-[11px] text-slate-400 mb-1">Min Floor Coverage (Working Agents)</label><input type="number" id="cfg-min-coverage" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100" /></div>
+            </div>
+            <div class="flex items-center justify-between bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2.5">
+              <div>
+                <div class="text-xs font-semibold text-slate-100">🪑 Hide Benched Agents on Live Floor (Global)</div>
+                <div class="text-[11px] text-slate-400">Hidden from everyone by default unless unchecked here and saved.</div>
+              </div>
+              <input type="checkbox" id="cfg-hide-benched" checked class="w-4 h-4 rounded bg-slate-900 border-slate-600 text-emerald-500" />
             </div>
             <div class="flex items-center justify-between pt-2">
               <button onclick="saveSettings()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">☁️ Save Global Config to Sheet</button>
@@ -1269,7 +1271,8 @@
         liveBreakAlertMins: 20,
         targetHours: 8,
         minCallsPerHr: 25,
-        minFloorCoverage: 22
+        minFloorCoverage: 22,
+        hideBenchedGlobal: 1
       },
       logs: [],
       leaves: [],
@@ -1356,6 +1359,13 @@
       const boundName = getLockedAgentNameForCurrentUser();
       if (!boundName) return false;
       return boundName === ADMIN_PROFILE_NAME || state.adminAgents.includes(boundName);
+    }
+
+    function getCurrentUserAssignedCampaign() {
+      const boundName = getLockedAgentNameForCurrentUser();
+      if (!boundName || boundName === ADMIN_PROFILE_NAME) return "";
+      const info = getAgentCampaignInfo(boundName);
+      return (info && info.status !== "BENCH" && info.campaignName) ? info.campaignName : "";
     }
 
     function getAgentCleanStreak(agentName) {
@@ -2227,7 +2237,7 @@
     }
 
     // =========================================================
-    // 6. LIVE LEADERBOARD (CALLS, LEADS, CAMPAIGNS & MY RANK)
+    // 6. LIVE LEADERBOARD (CALLER CAMPAIGN RESTRICTION & MY RANK)
     // =========================================================
     function setLeaderboardRange(range) {
       state.lbRange = range;
@@ -2247,6 +2257,9 @@
       if (state.lbRange === "today") cutoff = today;
       else if (state.lbRange === "week") cutoff = getDaysAgoStr(6);
       else if (state.lbRange === "month") cutoff = getMonthStartStr();
+
+      const isAdmin = isCurrentUserAdmin();
+      const myCampaign = getCurrentUserAssignedCampaign();
 
       const eligibleAgents = getActiveAgents().filter(a => !state.hiddenLeaderboardAgents.includes(a));
       const statsMap = {};
@@ -2277,12 +2290,21 @@
         cph: r.netHours > 0 ? Math.round((r.calls / r.netHours) * 10) / 10 : 0
       }));
 
+      // Build Campaign Dropdown based on role:
+      // Admin sees All Campaigns + every campaign; Non-Admin sees All Floor + HIS campaign only
       const campSel = document.getElementById("lb-campaign-filter");
-      const currentCampFilter = campSel.value || "ALL";
-      const uniqueCamps = [...new Set(allCalculated.map(r => r.campaign))].sort();
-      campSel.innerHTML = `<option value="ALL">All Campaigns</option>` +
-        uniqueCamps.map(c => `<option value="${escapeHtml(c)}" ${c === currentCampFilter ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+      let currentCampFilter = campSel.value || "ALL";
+      if (isAdmin) {
+        const uniqueCamps = [...new Set(allCalculated.map(r => r.campaign))].sort();
+        campSel.innerHTML = `<option value="ALL">All Floor (All Campaigns)</option>` +
+          uniqueCamps.map(c => `<option value="${escapeHtml(c)}" ${c === currentCampFilter ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+      } else {
+        if (currentCampFilter !== "ALL" && currentCampFilter !== myCampaign) currentCampFilter = "ALL";
+        campSel.innerHTML = `<option value="ALL" ${currentCampFilter === "ALL" ? "selected" : ""}>All Floor</option>` +
+          (myCampaign ? `<option value="${escapeHtml(myCampaign)}" ${currentCampFilter === myCampaign ? "selected" : ""}>🎯 My Campaign (${escapeHtml(myCampaign)})</option>` : "");
+      }
 
+      // Campaign vs Campaign Battle Bar (clickable only for Admin or caller's own campaign)
       const campTotals = {};
       allCalculated.forEach(r => {
         if (r.campaign === "Unassigned" && r.calls === 0) return;
@@ -2295,12 +2317,13 @@
         ? `<span class="text-xs text-slate-500">No campaign stats logged yet for this period.</span>`
         : sortedCamps.map(([cp, val], idx) => {
             const isSelected = currentCampFilter === cp;
+            const canClick = isAdmin || (myCampaign && cp === myCampaign);
+            const clickAttr = canClick ? `onclick="document.getElementById('lb-campaign-filter').value='${escapeJsStr(cp)}'; renderLeaderboard();"` : "";
             return `
-              <button onclick="document.getElementById('lb-campaign-filter').value='${escapeJsStr(cp)}'; renderLeaderboard();"
-                class="px-3 py-1.5 rounded-xl border text-left transition ${isSelected ? 'bg-sky-600/25 border-sky-400 text-white' : 'bg-slate-800/70 border-slate-700 text-slate-300 hover:border-sky-500/50'}">
+              <div ${clickAttr} class="px-3 py-1.5 rounded-xl border text-left transition ${canClick ? 'cursor-pointer' : ''} ${isSelected ? 'bg-sky-600/25 border-sky-400 text-white' : 'bg-slate-800/70 border-slate-700 text-slate-300'}">
                 <div class="text-[11px] font-bold">${idx === 0 && val.calls > 0 ? "👑 " : ""}${escapeHtml(cp)}</div>
                 <div class="mono text-[10px] text-slate-400">${val.calls.toLocaleString()} calls • <span class="text-emerald-400 font-semibold">${val.leads} leads</span></div>
-              </button>
+              </div>
             `;
           }).join("");
 
@@ -3677,7 +3700,7 @@
     }
 
     // =========================================================
-    // 11. LIVE FLOOR MONITOR (HIDE BENCH + CAMPAIGN/DIALER FILTERS)
+    // 11. LIVE FLOOR MONITOR (GLOBAL HIDE BENCH + ROLE CAMPAIGN VIEW)
     // =========================================================
     function setFloorFilter(filter) {
       state.floorFilter = filter;
@@ -3706,19 +3729,27 @@
       const today = getEgyptDateStr();
       const now = Date.now();
       const query = (document.getElementById("floor-search").value || "").toLowerCase();
-      const hideBench = document.getElementById("floor-hide-bench-chk").checked;
+      const hideBench = Number(state.settings.hideBenchedGlobal ?? 1) === 1;
       const isAdmin = isCurrentUserAdmin();
+      const myCampaign = getCurrentUserAssignedCampaign();
 
+      // Campaign dropdown: Admin gets All Floor + every campaign; Non-Admin gets All Floor + HIS campaign only
       const campFilterEl = document.getElementById("floor-campaign-filter");
       const dialerFilterEl = document.getElementById("floor-dialer-filter");
-      const curCamp = campFilterEl.value || "ALL";
+      let curCamp = campFilterEl.value || "ALL";
       const curDialer = dialerFilterEl.value || "ALL";
 
-      const uniqueCamps = [...new Set(state.campaignAssignments.map(c => c.campaignName).filter(Boolean))].sort();
-      const uniqueDialers = [...new Set(state.campaignAssignments.map(c => c.dialer).filter(Boolean))].sort();
+      if (isAdmin) {
+        const uniqueCamps = [...new Set(state.campaignAssignments.map(c => c.campaignName).filter(Boolean))].sort();
+        campFilterEl.innerHTML = `<option value="ALL">All Floor (All Campaigns)</option>` +
+          uniqueCamps.map(c => `<option value="${escapeHtml(c)}" ${c === curCamp ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+      } else {
+        if (curCamp !== "ALL" && curCamp !== myCampaign) curCamp = "ALL";
+        campFilterEl.innerHTML = `<option value="ALL" ${curCamp === "ALL" ? "selected" : ""}>All Floor</option>` +
+          (myCampaign ? `<option value="${escapeHtml(myCampaign)}" ${curCamp === myCampaign ? "selected" : ""}>🎯 My Campaign (${escapeHtml(myCampaign)})</option>` : "");
+      }
 
-      campFilterEl.innerHTML = `<option value="ALL">All Campaigns</option>` +
-        uniqueCamps.map(c => `<option value="${escapeHtml(c)}" ${c === curCamp ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+      const uniqueDialers = [...new Set(state.campaignAssignments.map(c => c.dialer).filter(Boolean))].sort();
       dialerFilterEl.innerHTML = `<option value="ALL">All Dialers</option>` +
         uniqueDialers.map(d => `<option value="${escapeHtml(d)}" ${d === curDialer ? "selected" : ""}>${escapeHtml(d)}</option>`).join("");
 
@@ -4300,6 +4331,7 @@
       document.getElementById("cfg-target-hours").value = state.settings.targetHours;
       document.getElementById("cfg-min-cph").value = state.settings.minCallsPerHr;
       document.getElementById("cfg-min-coverage").value = state.settings.minFloorCoverage;
+      document.getElementById("cfg-hide-benched").checked = Number(state.settings.hideBenchedGlobal ?? 1) === 1;
       updateBenchCountBadge();
       renderCampaignBoard();
       renderBenchBoard();
@@ -4458,9 +4490,10 @@
       state.settings.targetHours = Number(document.getElementById("cfg-target-hours").value) || 8;
       state.settings.minCallsPerHr = Number(document.getElementById("cfg-min-cph").value) || 25;
       state.settings.minFloorCoverage = Number(document.getElementById("cfg-min-coverage").value) || 22;
+      state.settings.hideBenchedGlobal = document.getElementById("cfg-hide-benched").checked ? 1 : 0;
       syncPayloadToCloud({ recordType: "CONFIG_SYNC", config: state.settings });
       renderAll();
-      showToast("☁️ Global thresholds & coverage guardrail saved to Google Sheets!");
+      showToast("☁️ Global settings & benched visibility saved to Google Sheets!");
     }
 
     function exportCurrentAdminCSV() {
