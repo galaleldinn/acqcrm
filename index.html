@@ -186,7 +186,10 @@
 
           <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-4 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">🌴 My <span id="agent-balance-year">2026</span> Leave Balances</h3>
+              <div class="flex items-center gap-2">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">🌴 My Leave Balances</h3>
+                <select id="agent-balance-year-select" onchange="renderAgentConsole()" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs mono font-bold text-emerald-300"></select>
+              </div>
               <button onclick="switchTab('calendar')" class="text-[11px] font-semibold text-sky-400 hover:text-sky-300">Request / View on Global Calendar →</button>
             </div>
             <div id="agent-leave-balance-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
@@ -198,7 +201,10 @@
                 <button onclick="switchPersonalHistoryTab('shifts')" id="phist-tab-shifts" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-700 text-white">📋 My Past Shifts &amp; EOD Notes</button>
                 <button onclick="switchPersonalHistoryTab('leaves')" id="phist-tab-leaves" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">🗓️ My Leave History</button>
               </div>
-              <button onclick="pullFromGoogleSheet(true)" class="text-[11px] text-slate-400 hover:text-emerald-400">🔄 Sync Cloud History</button>
+              <div class="flex items-center gap-2">
+                <select id="personal-leave-year-filter" onchange="renderPersonalStatsAndHistory(state.selectedAgent)" class="hidden bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs mono text-slate-200"></select>
+                <button onclick="pullFromGoogleSheet(true)" class="text-[11px] text-slate-400 hover:text-emerald-400">🔄 Sync Cloud History</button>
+              </div>
             </div>
 
             <div id="personal-shifts-panel" class="overflow-x-auto border border-slate-800 rounded-xl">
@@ -307,7 +313,7 @@
     </section>
 
     <!-- ========================================================= -->
-    <!-- VIEW 3: GLOBAL TEAM LEAVE CALENDAR & COVERAGE GUARDRAIL   -->
+    <!-- VIEW 3: GLOBAL TEAM LEAVE CALENDAR & MULTI-YEAR LEDGER    -->
     <!-- ========================================================= -->
     <section id="view-calendar" class="hidden space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
@@ -325,12 +331,23 @@
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 class="text-sm font-bold text-slate-100">📊 <span id="cal-balance-owner-label">My</span> Leave Balances (<span id="cal-balance-year">2026</span>)</h3>
-            <p class="text-xs text-slate-400">Only <strong>Approved</strong> leaves are deducted • <strong>15 Annual</strong> • <strong>6 Casual</strong> • <strong>10 Paid Sick</strong> • <strong>Unlimited UPL</strong></p>
+            <h3 class="text-sm font-bold text-slate-100">📊 <span id="cal-balance-owner-label">My</span> Leave Balances &amp; Multi-Year Lookup</h3>
+            <p class="text-xs text-slate-400">Only <strong>Approved</strong> leaves deduct • <strong>15 Annual</strong> (unused carries over until <strong>Mar 31</strong>) • <strong>6 Casual</strong> &amp; <strong>10 Paid Sick</strong> reset Jan 1</p>
           </div>
-          <select id="cal-balance-agent" onchange="renderCalendarBalanceChecker()" class="hidden bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-100 sm:w-72"></select>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="cal-balance-year-select" onchange="renderCalendarBalanceChecker(); renderLeaveList();" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs mono font-bold text-emerald-300"></select>
+            <select id="cal-balance-agent" onchange="renderCalendarBalanceChecker()" class="hidden bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-100 sm:w-64"></select>
+          </div>
         </div>
         <div id="cal-balance-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+        <!-- ANNUAL LEAVE DATE BREAKDOWN FOR SELECTED AGENT & YEAR -->
+        <div id="cal-agent-year-log-strip" class="hidden bg-slate-800/50 border border-slate-800 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <span id="cal-agent-year-log-title" class="text-[11px] font-bold uppercase tracking-wider text-slate-300"></span>
+            <span id="cal-agent-year-log-count" class="mono text-[11px] text-slate-400"></span>
+          </div>
+          <div id="cal-agent-year-log-pills" class="flex flex-wrap gap-1.5"></div>
+        </div>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
@@ -363,6 +380,9 @@
             <p id="leave-queue-subtitle" class="text-xs text-slate-400">Track the approval status of your submitted days off.</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <select id="leave-year-filter" onchange="renderLeaveList()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs mono text-slate-200">
+              <option value="ALL">All Years</option>
+            </select>
             <select id="leave-agent-filter" onchange="renderLeaveList()" class="hidden bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
               <option value="ALL">All Agents</option>
             </select>
@@ -482,11 +502,11 @@
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-          <div class="flex items-center gap-2.5"><span class="text-xl">🌴</span><h3 class="text-sm font-bold text-slate-100">4. Annual Leave Quotas &amp; Request Rules</h3></div>
+          <div class="flex items-center gap-2.5"><span class="text-xl">🌴</span><h3 class="text-sm font-bold text-slate-100">4. Annual Leave Quotas &amp; Carryover Rules</h3></div>
           <ul class="space-y-2.5 text-xs text-slate-300 leading-relaxed">
-            <li class="flex items-start gap-2"><span class="text-purple-400 font-bold">•</span><span><strong>Annual Leave (15 Days / Year):</strong> Planned time off. Submit in advance via the <strong>📅 Leave Calendar</strong> for manager approval.</span></li>
-            <li class="flex items-start gap-2"><span class="text-purple-400 font-bold">•</span><span><strong>Casual Leave (6 Days / Year):</strong> Short-notice personal days, deducted only when approved.</span></li>
-            <li class="flex items-start gap-2"><span class="text-purple-400 font-bold">•</span><span><strong>Paid Sick Leave (10 Days / Year):</strong> Paid medical days off (requires manager approval).</span></li>
+            <li class="flex items-start gap-2"><span class="text-purple-400 font-bold">•</span><span><strong>Annual Leave (15 Days / Year + Q1 Carryover):</strong> Fresh 15 days added Jan 1. Any unused Annual days from the previous year carry over until <strong>March 31</strong> (used first in Q1) and expire on <strong>April 1</strong>.</span></li>
+            <li class="flex items-start gap-2"><span class="text-purple-400 font-bold">•</span><span><strong>Casual Leave (6 Days / Year):</strong> Resets every <strong>January 1</strong> with no carryover—any remaining days expire at year-end.</span></li>
+            <li class="flex items-start gap-2"><span class="text-purple-400 font-bold">•</span><span><strong>Paid Sick Leave (10 Days / Year):</strong> Resets every <strong>January 1</strong> with no carryover—any remaining days expire at year-end.</span></li>
             <li class="flex items-start gap-2"><span class="text-purple-400 font-bold">•</span><span><strong>UPL — Unpaid Leave (Unlimited):</strong> Available if paid quotas are exhausted. Unapproved absences are marked <strong>Absent / No-Show</strong>.</span></li>
           </ul>
         </div>
@@ -817,9 +837,9 @@
       <div>
         <label class="block text-[11px] font-semibold text-slate-300 mb-1">Leave Type *</label>
         <select id="leave-type-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-slate-100">
-          <option value="Annual">🌴 Annual Leave (15 days / year)</option>
-          <option value="Casual">☀️ Casual Leave (6 days / year)</option>
-          <option value="Sick Leave">🤒 Sick Leave — Paid (10 days / year)</option>
+          <option value="Annual">🌴 Annual Leave (15 days / year + Q1 carryover)</option>
+          <option value="Casual">☀️ Casual Leave (6 days / year — resets Jan 1)</option>
+          <option value="Sick Leave">🤒 Sick Leave — Paid (10 days / year — resets Jan 1)</option>
           <option value="UPL">💸 UPL — Unpaid Leave (No Limit)</option>
         </select>
       </div>
@@ -879,7 +899,13 @@
         <button onclick="closeModal('modal-inspect-agent')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300">✕ Close</button>
       </div>
       <div id="inspect-today-cards" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
-      <div><h4 class="text-xs font-bold uppercase text-slate-400 mb-2">🌴 Leave Balances (Approved Only)</h4><div id="inspect-leave-cards" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div></div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="text-xs font-bold uppercase text-slate-400">🌴 Leave Balances (Approved Only)</h4>
+          <select id="inspect-leave-year-select" onchange="openInspectAgentModal(state.inspectedAgentName)" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs mono font-bold text-emerald-300"></select>
+        </div>
+        <div id="inspect-leave-cards" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+      </div>
       <div>
         <h4 class="text-xs font-bold uppercase text-slate-400 mb-2">📋 Shift History, Cumulative Breaks &amp; Status Updates</h4>
         <div class="overflow-x-auto border border-slate-800 rounded-xl max-h-60">
@@ -1381,50 +1407,138 @@
       return streak;
     }
 
-    function getAgentLeaveBalances(agentName, yearStr = getEgyptDateStr().slice(0, 4)) {
-      const usedDatesByType = { "Annual": new Set(), "Casual": new Set(), "Sick Leave": new Set(), "UPL": new Set() };
+    // =========================================================
+    // MULTI-YEAR LEAVE ENGINE & ANNUAL CARRYOVER (VALID TIL MAR 31)
+    // =========================================================
+    function getAvailableLeaveYears() {
+      const curYear = Number(getEgyptDateStr().slice(0, 4));
+      const years = new Set([curYear - 1, curYear, curYear + 1]);
+      state.leaves.forEach(lv => {
+        const d = sanitizeDateField(lv.date || lv.startDate);
+        if (d && /^\d{4}/.test(d)) years.add(Number(d.slice(0, 4)));
+      });
+      Object.keys(state.dailyOverrides).forEach(k => {
+        const d = k.split("|")[0];
+        if (d && /^\d{4}/.test(d)) years.add(Number(d.slice(0, 4)));
+      });
+      return [...years].sort((a, b) => b - a);
+    }
+
+    function populateYearSelect(selectEl, selectedVal, includeAllOption = false) {
+      if (!selectEl) return;
+      const years = getAvailableLeaveYears();
+      const cur = selectedVal || getEgyptDateStr().slice(0, 4);
+      let html = includeAllOption ? `<option value="ALL" ${cur === "ALL" ? "selected" : ""}>All Years</option>` : "";
+      html += years.map(y => `<option value="${y}" ${String(y) === String(cur) ? "selected" : ""}>${y}</option>`).join("");
+      selectEl.innerHTML = html;
+    }
+
+    function getApprovedLeaveDatesForAgentYear(agentName, yearStr) {
+      const sets = { "Annual": new Set(), "Casual": new Set(), "Sick Leave": new Set(), "UPL": new Set() };
       state.leaves.forEach(lv => {
         if (lv.agentName !== agentName || lv.status !== "APPROVED") return;
         const d = sanitizeDateField(lv.date || lv.startDate);
-        if (d && d.startsWith(yearStr) && usedDatesByType[lv.leaveType]) usedDatesByType[lv.leaveType].add(d);
+        if (d && d.startsWith(yearStr) && sets[lv.leaveType]) sets[lv.leaveType].add(d);
       });
       Object.entries(state.dailyOverrides).forEach(([key, val]) => {
         const [d, aName] = key.split("|");
-        if (aName === agentName && d && d.startsWith(yearStr) && usedDatesByType[val]) usedDatesByType[val].add(d);
+        if (aName === agentName && d && d.startsWith(yearStr) && sets[val]) sets[val].add(d);
       });
+      return {
+        annualDates: [...sets["Annual"]].sort(),
+        casualDates: [...sets["Casual"]].sort(),
+        sickDates: [...sets["Sick Leave"]].sort(),
+        uplDates: [...sets["UPL"]].sort()
+      };
+    }
 
-      const annualUsed = usedDatesByType["Annual"].size;
-      const casualUsed = usedDatesByType["Casual"].size;
-      const sickUsed = usedDatesByType["Sick Leave"].size;
-      const uplUsed = usedDatesByType["UPL"].size;
+    function computeCarryoverFromPrevYear(agentName, prevYearNum) {
+      const prevYearStr = String(prevYearNum);
+      const hasAnyDataInPrevYear =
+        state.leaves.some(lv => sanitizeDateField(lv.date || lv.startDate).startsWith(prevYearStr)) ||
+        Object.keys(state.dailyOverrides).some(k => k.startsWith(prevYearStr)) ||
+        state.logs.some(l => sanitizeDateField(l.date).startsWith(prevYearStr));
+
+      if (!hasAnyDataInPrevYear) return 0;
+
+      const prevDates = getApprovedLeaveDatesForAgentYear(agentName, prevYearStr);
+      const prevUsed = prevDates.annualDates.length;
+      return Math.max(0, LEAVE_QUOTAS["Annual"] - prevUsed);
+    }
+
+    function getAgentLeaveBalances(agentName, yearStr = getEgyptDateStr().slice(0, 4), asOfDateStr = getEgyptDateStr()) {
+      const yearNum = Number(yearStr);
+      const datesObj = getApprovedLeaveDatesForAgentYear(agentName, yearStr);
+      const annualDates = datesObj.annualDates;
+
+      const carryoverStart = computeCarryoverFromPrevYear(agentName, yearNum - 1);
+      const q1Cutoff = `${yearStr}-03-31`;
+      const q1Used = annualDates.filter(d => d <= q1Cutoff).length;
+      const postQ1Used = annualDates.filter(d => d > q1Cutoff).length;
+
+      const carryoverConsumed = Math.min(carryoverStart, q1Used);
+      const overflowFromQ1 = Math.max(0, q1Used - carryoverStart);
+      const currentYearConsumed = overflowFromQ1 + postQ1Used;
+      const currentYearLeft = Math.max(0, LEAVE_QUOTAS["Annual"] - currentYearConsumed);
+
+      const isPostMarch = asOfDateStr > q1Cutoff;
+      const activeCarryoverLeft = isPostMarch ? 0 : Math.max(0, carryoverStart - carryoverConsumed);
+      const expiredCarryover = isPostMarch ? Math.max(0, carryoverStart - carryoverConsumed) : 0;
+
+      const totalAnnualLeft = currentYearLeft + activeCarryoverLeft;
+      const casualUsed = datesObj.casualDates.length;
+      const sickUsed = datesObj.sickDates.length;
+      const uplUsed = datesObj.uplDates.length;
 
       return {
-        annual: { total: LEAVE_QUOTAS["Annual"], used: annualUsed, left: Math.max(0, LEAVE_QUOTAS["Annual"] - annualUsed) },
+        annual: {
+          baseTotal: LEAVE_QUOTAS["Annual"],
+          carryoverStart,
+          activeCarryoverLeft,
+          expiredCarryover,
+          currentYearLeft,
+          used: annualDates.length,
+          left: totalAnnualLeft,
+          isPostMarch
+        },
         casual: { total: LEAVE_QUOTAS["Casual"], used: casualUsed, left: Math.max(0, LEAVE_QUOTAS["Casual"] - casualUsed) },
         sick: { total: LEAVE_QUOTAS["Sick Leave"], used: sickUsed, left: Math.max(0, LEAVE_QUOTAS["Sick Leave"] - sickUsed) },
         upl: { used: uplUsed }
       };
     }
 
-    function renderBalanceCardsHTML(agentName) {
-      const yearStr = getEgyptDateStr().slice(0, 4);
-      const b = getAgentLeaveBalances(agentName, yearStr);
+    function renderBalanceCardsHTML(agentName, yearStr = getEgyptDateStr().slice(0, 4)) {
+      const todayStr = getEgyptDateStr();
+      const refDate = yearStr === todayStr.slice(0, 4) ? todayStr : (yearStr < todayStr.slice(0, 4) ? `${yearStr}-12-31` : `${yearStr}-01-01`);
+      const b = getAgentLeaveBalances(agentName, yearStr, refDate);
+
+      let annualSubNote = `${b.annual.used} used in ${yearStr}`;
+      if (b.annual.activeCarryoverLeft > 0) {
+        annualSubNote = `${b.annual.currentYearLeft} (${yearStr}) + ${b.annual.activeCarryoverLeft} carryover (expires Mar 31)`;
+      } else if (b.annual.expiredCarryover > 0) {
+        annualSubNote = `${b.annual.used} used • ${b.annual.expiredCarryover} carryover expired Apr 1`;
+      }
+
       return `
         <div class="bg-sky-950/30 border border-sky-500/30 rounded-xl p-3">
-          <div class="flex items-center justify-between text-[11px] text-sky-300 font-semibold"><span>🌴 Annual Leave</span><span>${b.annual.used} / ${b.annual.total} approved</span></div>
+          <div class="flex items-center justify-between text-[11px] text-sky-300 font-semibold"><span>🌴 Annual Leave (${escapeHtml(yearStr)})</span><span>${b.annual.used} approved</span></div>
           <div class="mono text-xl font-bold text-sky-200 mt-1">${b.annual.left} <span class="text-xs font-normal text-sky-400">days left</span></div>
+          <div class="text-[10px] text-sky-300/80 mt-0.5">${annualSubNote}</div>
         </div>
         <div class="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3">
-          <div class="flex items-center justify-between text-[11px] text-amber-300 font-semibold"><span>☀️ Casual Leave</span><span>${b.casual.used} / ${b.casual.total} approved</span></div>
+          <div class="flex items-center justify-between text-[11px] text-amber-300 font-semibold"><span>☀️ Casual Leave (${escapeHtml(yearStr)})</span><span>${b.casual.used} / ${b.casual.total}</span></div>
           <div class="mono text-xl font-bold text-amber-200 mt-1">${b.casual.left} <span class="text-xs font-normal text-amber-400">days left</span></div>
+          <div class="text-[10px] text-amber-300/75 mt-0.5">Resets Jan 1 (no carryover)</div>
         </div>
         <div class="bg-rose-950/30 border border-rose-500/30 rounded-xl p-3">
-          <div class="flex items-center justify-between text-[11px] text-rose-300 font-semibold"><span>🤒 Sick Leave (Paid)</span><span>${b.sick.used} / ${b.sick.total} approved</span></div>
+          <div class="flex items-center justify-between text-[11px] text-rose-300 font-semibold"><span>🤒 Paid Sick (${escapeHtml(yearStr)})</span><span>${b.sick.used} / ${b.sick.total}</span></div>
           <div class="mono text-xl font-bold text-rose-200 mt-1">${b.sick.left} <span class="text-xs font-normal text-rose-400">days left</span></div>
+          <div class="text-[10px] text-rose-300/75 mt-0.5">Resets Jan 1 (no carryover)</div>
         </div>
         <div class="bg-purple-950/30 border border-purple-500/30 rounded-xl p-3">
-          <div class="flex items-center justify-between text-[11px] text-purple-300 font-semibold"><span>💸 UPL (Unpaid)</span><span>Unlimited (∞)</span></div>
+          <div class="flex items-center justify-between text-[11px] text-purple-300 font-semibold"><span>💸 UPL (${escapeHtml(yearStr)})</span><span>Unlimited (∞)</span></div>
           <div class="mono text-xl font-bold text-purple-200 mt-1">${b.upl.used} <span class="text-xs font-normal text-purple-400">days approved</span></div>
+          <div class="text-[10px] text-purple-300/75 mt-0.5">Unpaid leave taken in ${escapeHtml(yearStr)}</div>
         </div>
       `;
     }
@@ -2290,8 +2404,6 @@
         cph: r.netHours > 0 ? Math.round((r.calls / r.netHours) * 10) / 10 : 0
       }));
 
-      // Build Campaign Dropdown based on role:
-      // Admin sees All Campaigns + every campaign; Non-Admin sees All Floor + HIS campaign only
       const campSel = document.getElementById("lb-campaign-filter");
       let currentCampFilter = campSel.value || "ALL";
       if (isAdmin) {
@@ -2304,7 +2416,6 @@
           (myCampaign ? `<option value="${escapeHtml(myCampaign)}" ${currentCampFilter === myCampaign ? "selected" : ""}>🎯 My Campaign (${escapeHtml(myCampaign)})</option>` : "");
       }
 
-      // Campaign vs Campaign Battle Bar (clickable only for Admin or caller's own campaign)
       const campTotals = {};
       allCalculated.forEach(r => {
         if (r.campaign === "Unassigned" && r.calls === 0) return;
@@ -2490,6 +2601,7 @@
         state.modalSelectedDates.push(val);
         state.modalSelectedDates.sort();
         renderModalSelectedDates();
+        renderModalLeaveQuotaPreview();
       } else {
         showToast("That date is already in your selection.");
       }
@@ -2498,6 +2610,7 @@
     function removeSelectedLeaveDate(dateStr) {
       state.modalSelectedDates = state.modalSelectedDates.filter(d => d !== dateStr);
       renderModalSelectedDates();
+      renderModalLeaveQuotaPreview();
     }
 
     function renderModalSelectedDates() {
@@ -2535,10 +2648,11 @@
       const agentName = document.getElementById("leave-agent-select").value;
       const box = document.getElementById("modal-leave-quota-preview");
       if (!agentName) { box.classList.add("hidden"); return; }
-      const b = getAgentLeaveBalances(agentName);
+      const refDate = state.modalSelectedDates[0] || document.getElementById("leave-single-date-input").value || getEgyptDateStr();
+      const b = getAgentLeaveBalances(agentName, refDate.slice(0, 4), refDate);
       box.classList.remove("hidden");
       box.innerHTML = `
-        <div><div class="text-slate-400">Annual</div><div class="mono font-bold text-sky-300">${b.annual.left}/${b.annual.total} left</div></div>
+        <div><div class="text-slate-400">Annual</div><div class="mono font-bold text-sky-300">${b.annual.left} left${b.annual.activeCarryoverLeft > 0 ? ` (+${b.annual.activeCarryoverLeft} Q1)` : ""}</div></div>
         <div><div class="text-slate-400">Casual</div><div class="mono font-bold text-amber-300">${b.casual.left}/${b.casual.total} left</div></div>
         <div><div class="text-slate-400">Sick Paid</div><div class="mono font-bold text-rose-300">${b.sick.left}/${b.sick.total} left</div></div>
         <div><div class="text-slate-400">UPL Used</div><div class="mono font-bold text-purple-300">${b.upl.used} (∞)</div></div>
@@ -2558,24 +2672,40 @@
         return;
       }
 
-      const yearStr = state.modalSelectedDates[0].slice(0, 4);
-      const balances = getAgentLeaveBalances(agentName, yearStr);
-      const requestedCount = state.modalSelectedDates.length;
+      const byYear = {};
+      state.modalSelectedDates.forEach(d => {
+        const y = d.slice(0, 4);
+        if (!byYear[y]) byYear[y] = [];
+        byYear[y].push(d);
+      });
 
-      if (leaveType === "Annual" && requestedCount > balances.annual.left) {
-        errEl.textContent = `Insufficient Annual Leave balance (${balances.annual.left} day(s) left).`;
-        errEl.classList.remove("hidden");
-        return;
-      }
-      if (leaveType === "Casual" && requestedCount > balances.casual.left) {
-        errEl.textContent = `Insufficient Casual Leave balance (${balances.casual.left} day(s) left).`;
-        errEl.classList.remove("hidden");
-        return;
-      }
-      if (leaveType === "Sick Leave" && requestedCount > balances.sick.left) {
-        errEl.textContent = `Insufficient Paid Sick Leave balance (${balances.sick.left} day(s) left).`;
-        errEl.classList.remove("hidden");
-        return;
+      for (const [yearStr, datesInYear] of Object.entries(byYear)) {
+        const latestDateInYear = [...datesInYear].sort().pop();
+        const balances = getAgentLeaveBalances(agentName, yearStr, latestDateInYear);
+        const requestedCount = datesInYear.length;
+
+        if (leaveType === "Annual") {
+          const q1ReqCount = datesInYear.filter(d => d <= `${yearStr}-03-31`).length;
+          const postQ1ReqCount = requestedCount - q1ReqCount;
+          const q1Avail = getAgentLeaveBalances(agentName, yearStr, `${yearStr}-03-31`).annual.left;
+          const postQ1Avail = getAgentLeaveBalances(agentName, yearStr, `${yearStr}-12-31`).annual.left;
+
+          if (q1ReqCount > q1Avail || postQ1ReqCount > postQ1Avail || requestedCount > balances.annual.left) {
+            errEl.textContent = `Insufficient Annual Leave balance in ${yearStr} (${balances.annual.left} day(s) available; carryover expires Mar 31).`;
+            errEl.classList.remove("hidden");
+            return;
+          }
+        }
+        if (leaveType === "Casual" && requestedCount > balances.casual.left) {
+          errEl.textContent = `Insufficient Casual Leave balance in ${yearStr} (${balances.casual.left} day(s) left).`;
+          errEl.classList.remove("hidden");
+          return;
+        }
+        if (leaveType === "Sick Leave" && requestedCount > balances.sick.left) {
+          errEl.textContent = `Insufficient Paid Sick Leave balance in ${yearStr} (${balances.sick.left} day(s) left).`;
+          errEl.classList.remove("hidden");
+          return;
+        }
       }
 
       state.isSubmitting = true;
@@ -2598,7 +2728,7 @@
       setTimeout(() => { state.isSubmitting = false; }, 1000);
       closeModal("modal-leave-req");
       renderAll();
-      showToast(`📅 Submitted ${requestedCount} individual ${leaveType} day(s) to Cloud`);
+      showToast(`📅 Submitted ${state.modalSelectedDates.length} individual ${leaveType} day(s) to Cloud`);
     }
 
     function updateLeaveStatus(id, newStatus, silent = false) {
@@ -2685,7 +2815,6 @@
       renderAll();
       showToast(`🔄 Reassigned ${lv.agentName}'s ${lv.leaveType} to ${newDate}`);
     }
-
     function deleteLeaveRequest(id) {
       if (!isCurrentUserAdmin()) return;
       const lv = state.leaves.find(item => item.id === id);
@@ -2732,9 +2861,15 @@
     function renderCalendarView() {
       const isAdmin = isCurrentUserAdmin();
       const balSel = document.getElementById("cal-balance-agent");
+      const balYearSel = document.getElementById("cal-balance-year-select");
+      const leaveYearSel = document.getElementById("leave-year-filter");
       const leaveFilterSel = document.getElementById("leave-agent-filter");
       const bulkBtn = document.getElementById("btn-bulk-approve-leaves");
       const pendingCount = state.leaves.filter(l => l.status === "PENDING").length;
+      const curYear = getEgyptDateStr().slice(0, 4);
+
+      populateYearSelect(balYearSel, balYearSel.value || curYear, false);
+      populateYearSelect(leaveYearSel, leaveYearSel.value || "ALL", true);
 
       if (isAdmin) {
         balSel.classList.remove("hidden");
@@ -2766,13 +2901,33 @@
         ? (document.getElementById("cal-balance-agent").value || getActiveAgents()[0])
         : (boundAgent && boundAgent !== ADMIN_PROFILE_NAME ? boundAgent : "");
 
+      const balYearSel = document.getElementById("cal-balance-year-select");
+      const selectedYear = balYearSel.value || getEgyptDateStr().slice(0, 4);
       const box = document.getElementById("cal-balance-cards");
-      document.getElementById("cal-balance-year").textContent = getEgyptDateStr().slice(0, 4);
+      const logStrip = document.getElementById("cal-agent-year-log-strip");
+
       if (!targetAgent) {
         box.innerHTML = `<div class="col-span-full text-xs text-slate-500 py-3">Sign in with Google to view your personal leave balances.</div>`;
+        logStrip.classList.add("hidden");
         return;
       }
-      box.innerHTML = renderBalanceCardsHTML(targetAgent);
+
+      box.innerHTML = renderBalanceCardsHTML(targetAgent, selectedYear);
+
+      const datesObj = getApprovedLeaveDatesForAgentYear(targetAgent, selectedYear);
+      const allOffPills = [
+        ...datesObj.annualDates.map(d => ({ d, type: "Annual", cls: "bg-sky-500/20 text-sky-200 border-sky-500/40" })),
+        ...datesObj.casualDates.map(d => ({ d, type: "Casual", cls: "bg-amber-500/20 text-amber-200 border-amber-500/40" })),
+        ...datesObj.sickDates.map(d => ({ d, type: "Sick Paid", cls: "bg-rose-500/20 text-rose-200 border-rose-500/40" })),
+        ...datesObj.uplDates.map(d => ({ d, type: "UPL", cls: "bg-purple-500/20 text-purple-200 border-purple-500/40" }))
+      ].sort((a, b) => a.d.localeCompare(b.d));
+
+      logStrip.classList.remove("hidden");
+      document.getElementById("cal-agent-year-log-title").textContent = `🗓️ Approved Days Off Taken by ${targetAgent.split(" ").slice(0, 2).join(" ")} in ${selectedYear}`;
+      document.getElementById("cal-agent-year-log-count").textContent = `${allOffPills.length} total day(s)`;
+      document.getElementById("cal-agent-year-log-pills").innerHTML = allOffPills.length === 0
+        ? `<span class="text-xs text-slate-500">No approved days off recorded in ${selectedYear}.</span>`
+        : allOffPills.map(p => `<span class="px-2 py-0.5 rounded text-[11px] mono border ${p.cls}">${escapeHtml(p.d)} (${escapeHtml(p.type)})</span>`).join("");
     }
 
     function renderCalendarGrid() {
@@ -2853,13 +3008,16 @@
       const boundAgent = getLockedAgentNameForCurrentUser();
       const statusFilter = document.getElementById("leave-status-filter").value;
       const agentFilter = document.getElementById("leave-agent-filter").value;
+      const yearFilter = document.getElementById("leave-year-filter").value || "ALL";
 
       const filtered = state.leaves.filter(lv => {
+        const dStr = sanitizeDateField(lv.date || lv.startDate);
         if (!isAdmin && lv.agentName !== boundAgent) return false;
+        if (yearFilter !== "ALL" && !dStr.startsWith(yearFilter)) return false;
         if (statusFilter !== "ALL" && lv.status !== statusFilter) return false;
         if (isAdmin && agentFilter !== "ALL" && lv.agentName !== agentFilter) return false;
         return true;
-      });
+      }).sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
 
       const tbody = document.getElementById("leave-tbody");
       if (filtered.length === 0) {
@@ -2887,9 +3045,9 @@
           ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">⚠️ ${afterApprovalWorking}/${cov.total} Working</span>`
           : `<span class="text-[11px] text-emerald-400 mono">${afterApprovalWorking}/${cov.total} Working</span>`;
 
-        const b = getAgentLeaveBalances(lv.agentName, dStr.slice(0, 4));
+        const b = getAgentLeaveBalances(lv.agentName, dStr.slice(0, 4), dStr);
         const quotaText =
-          lv.leaveType === "Annual" ? `${b.annual.left}/15 Annual left` :
+          lv.leaveType === "Annual" ? `${b.annual.left} Annual left` :
           lv.leaveType === "Casual" ? `${b.casual.left}/6 Casual left` :
           lv.leaveType === "Sick Leave" ? `${b.sick.left}/10 Sick left` :
           `${b.upl.used} UPL approved (∞)`;
@@ -3396,17 +3554,21 @@
       const btnLeaves = document.getElementById("phist-tab-leaves");
       const panelShifts = document.getElementById("personal-shifts-panel");
       const panelLeaves = document.getElementById("personal-leaves-panel");
+      const yearFilterEl = document.getElementById("personal-leave-year-filter");
 
       if (tab === "shifts") {
         btnShifts.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-700 text-white";
         btnLeaves.className = "px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white";
         panelShifts.classList.remove("hidden");
         panelLeaves.classList.add("hidden");
+        yearFilterEl.classList.add("hidden");
       } else {
         btnLeaves.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-700 text-white";
         btnShifts.className = "px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white";
         panelLeaves.classList.remove("hidden");
         panelShifts.classList.add("hidden");
+        populateYearSelect(yearFilterEl, yearFilterEl.value || "ALL", true);
+        yearFilterEl.classList.remove("hidden");
       }
     }
 
@@ -3456,7 +3618,10 @@
         }).join("");
       }
 
-      const myLeaves = state.leaves.filter(lv => lv.agentName === agentName).sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
+      const leaveYrFilter = document.getElementById("personal-leave-year-filter")?.value || "ALL";
+      const myLeaves = state.leaves
+        .filter(lv => lv.agentName === agentName && (leaveYrFilter === "ALL" || sanitizeDateField(lv.date || lv.startDate).startsWith(leaveYrFilter)))
+        .sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
       const leavesTbody = document.getElementById("personal-leaves-tbody");
       const statusBadge = {
         "PENDING": `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">⏳ Pending</span>`,
@@ -3465,7 +3630,7 @@
       };
 
       if (myLeaves.length === 0) {
-        leavesTbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-500">No leave requests submitted yet.</td></tr>`;
+        leavesTbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-500">No leave requests submitted for this period.</td></tr>`;
       } else {
         leavesTbody.innerHTML = myLeaves.map(lv => `
           <tr class="hover:bg-slate-900/60">
@@ -3537,8 +3702,10 @@
       pillEl.classList.remove("hidden");
       pillEl.classList.add("flex");
 
-      document.getElementById("agent-balance-year").textContent = getEgyptDateStr().slice(0, 4);
-      document.getElementById("agent-leave-balance-cards").innerHTML = renderBalanceCardsHTML(name);
+      const balYrSel = document.getElementById("agent-balance-year-select");
+      const selectedBalYr = balYrSel.value || getEgyptDateStr().slice(0, 4);
+      populateYearSelect(balYrSel, selectedBalYr, false);
+      document.getElementById("agent-leave-balance-cards").innerHTML = renderBalanceCardsHTML(name, selectedBalYr);
       renderPersonalStatsAndHistory(name);
 
       const now = Date.now();
@@ -3733,7 +3900,6 @@
       const isAdmin = isCurrentUserAdmin();
       const myCampaign = getCurrentUserAssignedCampaign();
 
-      // Campaign dropdown: Admin gets All Floor + every campaign; Non-Admin gets All Floor + HIS campaign only
       const campFilterEl = document.getElementById("floor-campaign-filter");
       const dialerFilterEl = document.getElementById("floor-dialer-filter");
       let curCamp = campFilterEl.value || "ALL";
@@ -3757,7 +3923,7 @@
       const floorSub = document.getElementById("floor-subtitle");
       if (isAdmin) {
         handoffBtn.classList.remove("hidden");
-        floorSub.textContent = "Admin Mode: Click any caller card to inspect their full profile, Agent ID, cumulative breaks, and days off.";
+        floorSub.textContent = "Admin Mode: Click any caller card to inspect their full profile, Agent ID, cumulative breaks, and multi-year leave history.";
       } else {
         handoffBtn.classList.add("hidden");
         floorSub.textContent = "Live Floor View (Read-Only) — Real-time attendance and break statuses across the team.";
@@ -3913,13 +4079,17 @@
     }
 
     function openInspectAgentModal(agentName) {
-      if (!isCurrentUserAdmin()) return;
+      if (!isCurrentUserAdmin() || !agentName) return;
       state.inspectedAgentName = agentName;
       const now = Date.now();
       const boundEmail = getBoundEmailForAgent(agentName);
       const limit = getAgentBreakLimit(agentName);
       const currentLog = getCurrentOrTodayShift(agentName);
       const camp = getAgentCampaignInfo(agentName);
+
+      const inspectYrSel = document.getElementById("inspect-leave-year-select");
+      const selectedInspectYr = inspectYrSel.value || getEgyptDateStr().slice(0, 4);
+      populateYearSelect(inspectYrSel, selectedInspectYr, false);
 
       document.getElementById("inspect-agent-name").textContent = agentName;
       document.getElementById("inspect-agent-meta").textContent = `${camp && camp.agentId ? `🔒 ID: ${camp.agentId} • ` : ""}${boundEmail ? "☁️ " + boundEmail : "Not linked"} • Break Quota: ${limit}m${camp && camp.campaignName ? ` • 🎯 ${camp.campaignName} (${camp.role || "Caller"})` : ""}`;
@@ -3939,7 +4109,7 @@
         <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Calls / Leads</div><div class="mono text-lg font-bold text-sky-400 mt-0.5">${callsLeadsStr}</div></div>
         <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3"><div class="text-[11px] text-slate-400">Status &amp; Updates</div><div class="text-xs font-medium text-slate-200 mt-1 truncate" title="${escapeHtml(statusUpdatesStr)}">${escapeHtml(statusUpdatesStr)}</div></div>
       `;
-      document.getElementById("inspect-leave-cards").innerHTML = renderBalanceCardsHTML(agentName);
+      document.getElementById("inspect-leave-cards").innerHTML = renderBalanceCardsHTML(agentName, selectedInspectYr);
 
       const agentLogs = state.logs.filter(l => l.agentName === agentName).sort((a, b) => sanitizeDateField(b.date).localeCompare(sanitizeDateField(a.date)));
       const shiftsTbody = document.getElementById("inspect-shifts-tbody");
@@ -3961,9 +4131,11 @@
             `;
           }).join("");
 
-      const agentLeaves = state.leaves.filter(lv => lv.agentName === agentName).sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
+      const agentLeaves = state.leaves
+        .filter(lv => lv.agentName === agentName && sanitizeDateField(lv.date || lv.startDate).startsWith(selectedInspectYr))
+        .sort((a, b) => sanitizeDateField(b.date || b.startDate).localeCompare(sanitizeDateField(a.date || a.startDate)));
       document.getElementById("inspect-leaves-tbody").innerHTML = agentLeaves.length === 0
-        ? `<tr><td colspan="4" class="py-5 text-center text-slate-500">No leave requests recorded.</td></tr>`
+        ? `<tr><td colspan="4" class="py-5 text-center text-slate-500">No leave requests recorded in ${selectedInspectYr}.</td></tr>`
         : agentLeaves.map(lv => `
             <tr class="hover:bg-slate-800/40">
               <td class="py-2 px-2.5 mono text-slate-200">${escapeHtml(sanitizeDateField(lv.date || lv.startDate))}</td>
@@ -4207,7 +4379,8 @@
       const now = Date.now();
       const selectedAgentFilter = document.getElementById("hist-agent").value;
       const agentsToInclude = (selectedAgentFilter && selectedAgentFilter !== "ALL") ? [selectedAgentFilter] : getActiveAgents();
-      const yearStr = getEgyptDateStr().slice(0, 4);
+      const fromVal = document.getElementById("hist-date-from").value;
+      const yearStr = (fromVal && /^\d{4}/.test(fromVal)) ? fromVal.slice(0, 4) : getEgyptDateStr().slice(0, 4);
       const map = {};
 
       agentsToInclude.forEach(name => {
@@ -4246,7 +4419,7 @@
             <td class="py-2.5 px-3 mono font-bold text-sky-400">${r.calls.toLocaleString()}</td>
             <td class="py-2.5 px-3 mono font-bold text-amber-300">${r.leads}</td>
             <td class="py-2.5 px-3 mono ${r.shifts > 0 && r.avgCph < state.settings.minCallsPerHr ? 'text-rose-400 font-bold' : 'text-slate-200'}">${r.avgCph}</td>
-            <td class="py-2.5 px-3 mono text-sky-300">${r.annualLeft}/15</td>
+            <td class="py-2.5 px-3 mono text-sky-300">${r.annualLeft}</td>
             <td class="py-2.5 px-3 mono text-amber-300">${r.casualLeft}/6</td>
             <td class="py-2.5 px-3 mono text-rose-300">${r.sickLeft}/10</td>
             <td class="py-2.5 px-3 mono text-purple-300">${r.uplUsed}d</td>
@@ -4500,7 +4673,7 @@
       if (state.adminSubTab === "rollup") {
         const filtered = getFilteredLogs(true);
         const rollup = getRollupRows(filtered);
-        const headers = ["Rank", "Agent Name", "Shifts", "Total Net Hours", "Total Calls", "Total Leads", "Avg Calls/Hr", "Annual Left (of 15)", "Casual Left (of 6)", "Paid Sick Left (of 10)", "UPL Taken", "Red Flags"];
+        const headers = ["Rank", "Agent Name", "Shifts", "Total Net Hours", "Total Calls", "Total Leads", "Avg Calls/Hr", "Annual Left (Incl. Q1 Carryover)", "Casual Left (of 6)", "Paid Sick Left (of 10)", "UPL Taken", "Red Flags"];
         const lines = [headers.join(",")];
         rollup.forEach((r, idx) => { lines.push([idx + 1, `"${r.agentName}"`, r.shifts, r.netHours, r.calls, r.leads, r.avgCph, r.annualLeft, r.casualLeft, r.sickLeft, r.uplUsed, r.redFlags].join(",")); });
         downloadCSV(lines.join("\n"), `ACQ_Monthly_KPI_Rollup_${getEgyptDateStr()}.csv`);
